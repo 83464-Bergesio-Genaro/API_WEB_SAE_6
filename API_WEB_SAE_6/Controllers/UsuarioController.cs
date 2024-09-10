@@ -73,7 +73,7 @@ namespace API_WEB_SAE_6.Controllers
         public async Task<ActionResult<IEnumerable<string>>> MockResponse()
         {
             return Ok
-                ("Mil horas de soledad");
+                ("Hello World! V3");
         }
         /// <summary>
         /// Genera un JWT.
