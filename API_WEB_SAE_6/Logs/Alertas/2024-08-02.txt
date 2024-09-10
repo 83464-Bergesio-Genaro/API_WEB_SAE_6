@@ -1,0 +1,5 @@
+02/08/2024 15:08:30, ANOMALIA: No es Empleado y mando un legajo diferente del suyo en el documento., DESDE EL HOST: localhost
+02/08/2024 15:09:12, ANOMALIA: No es Empleado y mando un legajo diferente del suyo en el documento., DESDE EL HOST: localhost
+02/08/2024 15:11:56, ANOMALIA: No es Empleado y mando un legajo diferente del suyo en el documento., DESDE EL HOST: 123@sistemas.frc.utn.edu.ar,1,3
+02/08/2024 15:13:39, ANOMALIA: No es Empleado y mando un legajo diferente del suyo en el documento., DESDE EL HOST: localhost:44342
+02/08/2024 15:15:55, ANOMALIA: Intento la manipulacion de documentos que no era de el o cambiar el legajo del documento, DESDE EL HOST: localhost:44342
