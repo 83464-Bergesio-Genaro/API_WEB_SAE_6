@@ -956,6 +956,7 @@ namespace API_WEB_SAE_6.Controllers
         ///     [
         ///       {
         ///         "id": 0,
+        ///         "id_deporte":0,
         ///         "nombre_deporte": "string",
         ///         "fecha_inscripcion": "2024-07-25T23:07:14.763Z"
         ///       }
