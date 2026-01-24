@@ -1,10 +1,12 @@
-﻿
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using System.Data;
 using System.Text;
 
-namespace API_WEB_SAE_6.Controllers
+namespace API_WEB_SAE_6.Adapters
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class GeneralAdapterSQL
     {
         private static string? ConectionString = null;
@@ -34,16 +36,6 @@ namespace API_WEB_SAE_6.Controllers
             }
 
 
-            ////Microsoft.Extensions.Configuration.ConfigurationManager["AppSettings"]
-            //ConectionString = config.GetSection("ConnectionStrings").GetSection("API_WEB_SAEContext").Value?.ToString() ?? "ERROR";
-            //if (ConectionString == "ERROR") return;
-
-            //byte[] bytes = System.Text.Encoding.ASCII.GetBytes(ConectionString);
-            //string cripting = Encoding.GetEncoding("UTF-8").GetString(bytes);
-
-            //bytes = Encoding.UTF8.GetBytes(cripting);
-            //string conection = Encoding.ASCII.GetString(bytes);
-            //ConectionString = conection;
         }
         //private static SqlConnection sqlCon = ;
 
@@ -61,7 +53,7 @@ namespace API_WEB_SAE_6.Controllers
             if (ConectionString == null || config == null) GetConection(config);
             if (ConectionString == "ERROR")
             {
-                log.RegistrarERROR(new("No se pudo encontrar los datos para conectarse a la BD"), "APPSETTINGS ERROR");
+                //log.RegistrarERROR(new("No se pudo encontrar los datos para conectarse a la BD"), "APPSETTINGS ERROR");
                 data.Rows.Add("ERROR");
                 ConectionString = null;
                 return data;
@@ -82,7 +74,7 @@ namespace API_WEB_SAE_6.Controllers
                 data = new();
                 data.Columns.Add("MENSAJE");
                 data.Rows.Add("ERROR");
-                log.RegistrarERROR(ex, "ERROR EN VISTA: " + view);
+                //log.RegistrarERROR(ex, "ERROR EN VISTA: " + view);
             }
             finally
             {
@@ -142,7 +134,7 @@ namespace API_WEB_SAE_6.Controllers
             if (ConectionString == null) GetConection(config);
             if (ConectionString == "ERROR")
             {
-                log.RegistrarERROR(new("No se pudo encontrar los datos para conectarse a la BD"), "APPSETTINGS ERROR");
+                //log.RegistrarERROR(new("No se pudo encontrar los datos para conectarse a la BD"), "APPSETTINGS ERROR");
                 data.Rows.Add("ERROR");
                 ConectionString = null;
                 return data;
@@ -168,7 +160,7 @@ namespace API_WEB_SAE_6.Controllers
                 data.Columns.Add("MENSAJE");
                 data.Rows.Add("ERROR");
                 //Registramos en el Log el error
-                log.RegistrarERROR(ex, "ERROR EN PROCEDIMIENTO: " + ProcedureName);
+                //log.RegistrarERROR(ex, "ERROR EN PROCEDIMIENTO: " + ProcedureName);
             }
             finally
             {
@@ -193,7 +185,7 @@ namespace API_WEB_SAE_6.Controllers
             if (ConectionString == null) GetConection(config);
             if (ConectionString == "ERROR")
             {
-                log.RegistrarERROR(new("No se pudo encontrar los datos para conectarse a la BD"), "APPSETTINGS ERROR");
+                //log.RegistrarERROR(new("No se pudo encontrar los datos para conectarse a la BD"), "APPSETTINGS ERROR");
                 data.Rows.Add("ERROR");
                 ConectionString = null;
                 return data;
@@ -219,7 +211,7 @@ namespace API_WEB_SAE_6.Controllers
                 data.Columns.Add("MENSAJE");
                 data.Rows.Add("ERROR");
                 //Registramos en el Log el error
-                log.RegistrarERROR(ex, "ERROR EN PROCEDIMIENTO: " + ProcedureName);
+                //log.RegistrarERROR(ex, "ERROR EN PROCEDIMIENTO: " + ProcedureName);
             }
             finally
             {
