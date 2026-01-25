@@ -36,11 +36,11 @@ namespace API_WEB_SAE_6.Controllers
         /// <summary>
         /// 
         /// </summary>
-        private readonly string secretKey;
+        private readonly string SecretKey;
         /// <summary>
         /// 
         /// </summary>
-        private readonly string controllerName = "UsuariosController";
+        private readonly string ControllerName = "UsuariosController";
 
         /// <summary>
         /// Recupera el contexto desde el archivo API_WEB_SAEContext <br/>
@@ -48,9 +48,8 @@ namespace API_WEB_SAE_6.Controllers
 
         public UsuariosController()
         {
-
             //Funciona asi y no recuperando la clave correcta, desconozco el origen del problema
-            secretKey = SettingsReader.GetAppSettings().SecretKey;
+            SecretKey = SettingsReader.GetAppSettings().SecretKey;
         }
         /// <summary>
         /// Lo utilizo para probar si funciona la API en diferentes entornos
@@ -115,16 +114,16 @@ namespace API_WEB_SAE_6.Controllers
             // Ademas renovamos su sesion todas las veces que utiliza un EndPoint (Cuando averigue como).
 
             //string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-            if (secretKey == "ERROR") Conflict();
+            if (SecretKey == "ERROR") Conflict();
             string method = "ObtenerTokenJWT";
-            Usuarios usr = UserAdapter.BuscarUsuarioActivoXLegajo(legajo);
+            Usuarios? usr = UserAdapter.BuscarUsuarioActivoXLegajo(legajo);
             if (usr != null && usr.legajo != "" && usr.id_perfil != -1 && usr.id != -1)
             {
                 string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
                 if (ip != null && ip != "" && UserAdapter.CrearSesionUsuario(usr.id))
                 {
-                    Logger.RegistrarDatos(Logger.LogOptions.IP, method,"IP: "+ip, controllerName);
-                    byte[] keyBytes = Encoding.UTF8.GetBytes(secretKey);
+                    Logger.RegistrarDatos(Logger.LogOptions.IP, method,"IP: "+ip, ControllerName);
+                    byte[] keyBytes = Encoding.UTF8.GetBytes(SecretKey);
                     ClaimsIdentity claims = new();
                     //Guardamos todos los datos necesarios para operar mas adelante
                     string claimValue = legajo + "," + usr.id_perfil + "," + usr.id;
@@ -144,15 +143,12 @@ namespace API_WEB_SAE_6.Controllers
                 }
                 else
                 {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, method, "ERROR AL CREAR LA SESION EN LA BASE DE DATOS. ACCESO NO AUTORIZADO", controllerName);
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, method, "ERROR AL CREAR LA SESION EN LA BASE DE DATOS. ACCESO NO AUTORIZADO", ControllerName);
                     return Conflict();
                 }
             }
             //Usuario no encontrado
-            else
-            {
-                return NoContent();
-            }
+            else return NoContent();
         }
 
         /// <summary>
@@ -215,7 +211,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error,method, ex.Message, controllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error,method, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -265,7 +261,9 @@ namespace API_WEB_SAE_6.Controllers
             {
                 if (TienePermiso(10))
                 {
-                    Usuarios user = UserAdapter.BuscarUsuarioXID(id);
+                    Usuarios? user = UserAdapter.BuscarUsuarioXID(id);
+
+                    if (user == null) return Conflict();
                     if (user.id != -1) return Ok(user);
                     else return NoContent();
                 }
@@ -273,7 +271,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, controllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -324,7 +322,8 @@ namespace API_WEB_SAE_6.Controllers
                 //El numero de funcion es: 11
                 if (TienePermiso(11))
                 {
-                    Usuarios user = UserAdapter.BuscarUsuarioXLegajo(legajo);
+                    Usuarios? user = UserAdapter.BuscarUsuarioXLegajo(legajo);
+                    if (user == null) return Conflict();
                     if (user.id != -1) return Ok(user);
                     else return NoContent();
                 }
@@ -332,7 +331,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, controllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -410,7 +409,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, controllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -483,7 +482,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, controllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
                 return BadRequest();
             }
         }

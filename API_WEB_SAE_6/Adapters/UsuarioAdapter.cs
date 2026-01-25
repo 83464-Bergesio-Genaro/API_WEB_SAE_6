@@ -30,7 +30,8 @@ namespace API_WEB_SAE_6.Adapters
                     GeneralAdapterMySQL consultor = new();
                     DataTable respuesta = consultor.ExecuteView("MODULO_USUARIOS_Vista_Usuarios");
                     //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
-
+                    if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
+                    
                     List<Usuarios> usuarios = [];
                     foreach (DataRow row in respuesta.Rows)
                     {
@@ -42,7 +43,7 @@ namespace API_WEB_SAE_6.Adapters
                 catch (Exception ex)
                 {
                     Logger.RegistrarDatos(Logger.LogOptions.Error, "ObtenerUsuariosCompleto", ex.Message, "UsuarioAdapter");
-                    return [];
+                    return null;
                 }
 
             }
@@ -53,7 +54,7 @@ namespace API_WEB_SAE_6.Adapters
         /// </summary>
         /// <param name="legajo">Legajo activo en la base y la aplicacion</param>
         /// <returns>Un usuario existente en nuestra base o error</returns>
-        public Usuarios BuscarUsuarioActivoXLegajo(string legajo)
+        public Usuarios? BuscarUsuarioActivoXLegajo(string legajo)
         {
             if (MotorDB == "MySQL")
             {
@@ -64,13 +65,14 @@ namespace API_WEB_SAE_6.Adapters
 
                     GeneralAdapterMySQL consultor = new();
                     DataTable respuesta = consultor.ExecuteStoredProcedure("MODULO_USUARIOS_Buscar_Usuario_Activo_Legajo", parameters);
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    if (respuesta.Rows.Count == 0 ) return new();
+                    if (respuesta.Rows[0][0].ToString() == "ERROR") return null;
                     else return new(respuesta.Rows[0]);
                 }
                 catch (Exception ex)
                 {
                     Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarUsuarioActivoXLegajo", ex.Message, "UsuarioAdapter");
-                    return new();
+                    return null;
                 }
             }
             else return new();
@@ -80,7 +82,7 @@ namespace API_WEB_SAE_6.Adapters
         /// </summary>
         /// <param name="id">ID del usuario en la base de datos</param>
         /// <returns>Un usuario existente en nuestra base o error</returns>
-        public Usuarios BuscarUsuarioXID(int id)
+        public Usuarios? BuscarUsuarioXID(int id)
         {
             if (MotorDB == "MySQL")
             {
@@ -91,13 +93,14 @@ namespace API_WEB_SAE_6.Adapters
 
                     GeneralAdapterMySQL consult = new();
                     DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_USUARIOS_Buscar_Usuarios_Id", parameters);
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    if (respuesta.Rows.Count == 0) return new();
+                    if (respuesta.Rows[0][0].ToString() == "ERROR") return null;
                     else return new(respuesta.Rows[0]);
                 }
                 catch (Exception ex)
                 {
                     Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarUsuarioXID", ex.Message, "UsuarioAdapter");
-                    return new();
+                    return null;
                 }
             }
             else return new();
@@ -107,7 +110,7 @@ namespace API_WEB_SAE_6.Adapters
         /// </summary>
         /// <param name="legajo">ID del usuario en la base de datos</param>
         /// <returns>Un usuario existente en nuestra base o error</returns>
-        public Usuarios BuscarUsuarioXLegajo(string legajo)
+        public Usuarios? BuscarUsuarioXLegajo(string legajo)
         {
             if (MotorDB == "MySQL")
             {
@@ -118,7 +121,8 @@ namespace API_WEB_SAE_6.Adapters
 
                     GeneralAdapterMySQL consult = new();
                     DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_USUARIOS_Buscar_Usuarios_Legajo", parameters);
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    if (respuesta.Rows.Count == 0) return new();
+                    if (respuesta.Rows[0][0].ToString() == "ERROR") return null;
                     else return new(respuesta.Rows[0]);
                 }
                 catch (Exception ex)

@@ -8,34 +8,19 @@ namespace API_WEB_SAE_6.Models
     /// </summary>
     public class Usuarios
     {
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <summary> </summary>
         [Key]
         public int id { get; set; } = -1;
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <summary> </summary>
         public string legajo { get; set; } = "";
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <summary> </summary>
         public string nombre_usuario { get; set; } = "";
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <summary> </summary>
         public int id_perfil { get; set; } = -1;
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <summary> </summary>
         public bool activo { get; set; } = false;
-        /// <summary>
-        /// 
-        /// </summary>
-        public Usuarios()
-        {
-
-        }
+        /// <summary> </summary>
+        public Usuarios(){}
         /// <summary>
         /// 
         /// </summary>
