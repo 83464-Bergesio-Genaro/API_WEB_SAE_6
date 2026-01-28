@@ -213,7 +213,7 @@ namespace API_WEB_SAE_6.Controllers
                 {
                     EventosSAE? evento = JpaAdapter.ObtenerEventoXId(id);
                     if (evento == null) return Conflict();
-                    if (evento.id != -1) return NoContent();
+                    if (evento.id == -1) return NoContent();
                     else return Ok(evento);
                 }
                 else return Forbid();
@@ -284,7 +284,6 @@ namespace API_WEB_SAE_6.Controllers
                 if (TienePermiso(104))
                 {
                     eventoSAE = JpaAdapter.ModificarEventoSae(eventoSAE);
-
                     if (eventoSAE.id != -1) return Ok(eventoSAE);
                     else return Conflict();
                 }
@@ -356,21 +355,10 @@ namespace API_WEB_SAE_6.Controllers
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        //string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                                { "@fecha", eventoSAE.fecha_evento.ToShortDateString() },
-                                { "@hora_ini",eventoSAE.horario_inicio},
-                                { "@hora_fin",eventoSAE.horario_fin},
-                                { "@encargado", eventoSAE.encargado },
-                                { "@nombre_evento",eventoSAE.nombre_evento},
-                                { "@informacion_interna",eventoSAE.informacion_interna.ToString()}
-                            };
-
                         eventoSAE = JpaAdapter.CrearEventoSae(eventoSAE);
                         if (eventoSAE.id != -1) return Created("Evento Creado", eventoSAE);
                         else return Conflict();
                     }
-
                 }
                 else return Forbid();
             }
@@ -437,560 +425,497 @@ namespace API_WEB_SAE_6.Controllers
                 return BadRequest();
             }
         }
-    /// <summary>
-    /// Recupera los stands disponibles
-    /// </summary>
-    /// <returns>Un listado con stands actuales</returns>
-    /// <remarks>
-    /// NOTA: Este endpoint es para libre consumo sin importar el usuario
-    ///  
-    /// Ejemplo de uso:
-    /// 
-    ///     GET /api/JPA/ObtenerStands/
-    ///     
-    ///     RESPONSE:
-    ///       [
-    ///         {
-    ///           "id": 0,
-    ///           "nombre_stand": "string",
-    ///           "expositor": "string",
-    ///           "ubicacion": "string",
-    ///           "horario_inicio": "string",
-    ///           "horario_fin": "string"
-    ///         }
-    ///       ]
-    ///     
-    /// </remarks>
-    /// <response code="200" >Devuelve un listado de stands actuales </response>
-    /// <response code="204" >No se encontro ningun stand </response>
-    /// <response code="400" >Ocurre un error en la consulta </response>
-    /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
-    /// <response code="403" >Su perfil no cuenta con este permiso</response>        
-    /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
-    /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-    [HttpGet]
-    [ActionName("ObtenerStands")]
-    [ProducesResponseType(typeof(IEnumerable<StandJPA>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<StandJPA>>> ObtenerStands()
-    {
-        try
+        /// <summary>
+        /// Recupera los stands disponibles
+        /// </summary>
+        /// <returns>Un listado con stands actuales</returns>
+        /// <remarks>
+        /// NOTA: Este endpoint es para libre consumo sin importar el usuario
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/JPA/ObtenerStands/
+        ///     
+        ///     RESPONSE:
+        ///       [
+        ///         {
+        ///           "id": 0,
+        ///           "nombre_stand": "string",
+        ///           "expositor": "string",
+        ///           "ubicacion": "string",
+        ///           "horario_inicio": "string",
+        ///           "horario_fin": "string"
+        ///         }
+        ///       ]
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve un listado de stands actuales </response>
+        /// <response code="204" >No se encontro ningun stand </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>        
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet]
+        [ActionName("ObtenerStands")]
+        [ProducesResponseType(typeof(IEnumerable<StandJPA>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<IEnumerable<StandJPA>> ObtenerStands()
         {
-
-            DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_JPA_Listar_Stand");
-            if (respuesta.Rows.Count == 0) return NoContent();
-            if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-            List<StandJPA> listadoEventosCompleto = new();
-            foreach (DataRow row in respuesta.Rows)
+                string method = "ObtenerStands";
+            try
             {
-                StandJPA eventos = new(row);
-                listadoEventosCompleto.Add(eventos);
+                List<StandJPA>? listadoStandsCompleto = JpaAdapter.ObtenerStandsCompleto();
+
+                if (listadoStandsCompleto == null) return Conflict();
+                if (listadoStandsCompleto.Count == 0) return NoContent();
+
+                return Ok(listadoStandsCompleto);
+
             }
-            return Ok(listadoEventosCompleto);
-
-        }
-        catch (Exception ex)
-        {
-            _logger.RegistrarERROR(ex, "ERROR LISTANDO STANDS PUBLICOS");
-            return BadRequest();
-        }
-    }
-    /// <summary>
-    /// Permite la modificacion de un stand
-    /// </summary>
-    /// <param name="id"> El ID del stand a modificar</param>
-    /// <param name="stand"> Los datos modificados del stand</param>
-    /// <returns>Un stand modificado en BD</returns>
-    /// <remarks>
-    /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
-    ///  
-    /// Ejemplo de uso:
-    /// 
-    ///     PUT /api/JPA/ModificarStand/{id}
-    ///     BODY:
-    ///     {
-    ///       "id": 0,
-    ///       "nombre_stand": "string",
-    ///       "expositor": "string",
-    ///       "ubicacion": "string",
-    ///       "horario_inicio": "string",
-    ///       "horario_fin": "string"
-    ///     }
-    ///     
-    ///     RESPONSE:
-    ///     {
-    ///       "id": 0,
-    ///       "nombre_stand": "string",
-    ///       "expositor": "string",
-    ///       "ubicacion": "string",
-    ///       "horario_inicio": "string",
-    ///       "horario_fin": "string"
-    ///     }
-    ///     
-    /// </remarks>
-    /// <response code="200" >Devuelve el stand modificado en BD </response>
-    /// <response code="400" >Ocurre un error en la consulta o el ID es diferente que el del stand a modificar </response>
-    /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
-    /// <response code="403" >Su perfil no cuenta con este permiso</response>
-    /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y no se modifica el usuario </response>
-    /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-    [HttpPut("{id}")]
-    [ActionName("ModificarStand")]
-    [Authorize]
-    [ProducesResponseType(typeof(StandJPA), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<StandJPA>> ModificarStand(int id, [FromBody, Required] StandJPA stand)
-    {
-        try
-        {
-            if (id != stand.id) return BadRequest();
-            //El numero de funcion es: 109
-            if (await TienePermiso(109))
+            catch (Exception ex)
             {
-                Dictionary<string, string> parametros = new() {
-                        { "@id_stand",stand.id.ToString() },
-                        { "@nombre_stand",stand.nombre_stand },
-                        { "@hora_ini", stand.horario_inicio },
-                        { "@hora_fin", stand.horario_fin },
-                        { "@ubicacion", stand.ubicacion },
-                        { "@expositor", stand.expositor }
-                    };
-                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Modificar_Stand", parametros);
-
-                //En este caso sino modifica nada es un conflicto en la BD
-                if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                return Ok(new StandJPA(respuesta.Rows[0]));
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                return BadRequest();
             }
-            else return Forbid();
         }
-        catch (Exception ex)
+        /// <summary>
+        /// Permite la modificacion de un stand
+        /// </summary>
+        /// <param name="id"> El ID del stand a modificar</param>
+        /// <param name="stand"> Los datos modificados del stand</param>
+        /// <returns>Un stand modificado en BD</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     PUT /api/JPA/ModificarStand/{id}
+        ///     BODY:
+        ///     {
+        ///       "id": 0,
+        ///       "nombre_stand": "string",
+        ///       "expositor": "string",
+        ///       "ubicacion": "string",
+        ///       "horario_inicio": "string",
+        ///       "horario_fin": "string"
+        ///     }
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///       "id": 0,
+        ///       "nombre_stand": "string",
+        ///       "expositor": "string",
+        ///       "ubicacion": "string",
+        ///       "horario_inicio": "string",
+        ///       "horario_fin": "string"
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve el stand modificado en BD </response>
+        /// <response code="400" >Ocurre un error en la consulta o el ID es diferente que el del stand a modificar </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y no se modifica el usuario </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpPut("{id}")]
+        [ActionName("ModificarStand")]
+        [Authorize]
+        [ProducesResponseType(typeof(StandJPA), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<StandJPA> ModificarStand(int id, [FromBody, Required] StandJPA stand)
         {
-            _logger.RegistrarERROR(ex, "ERROR MODIFICANDO STAND");
-            return BadRequest();
-        }
-    }
-    /// <summary>
-    /// Permite crear stand
-    /// </summary>
-    /// <param name="stand">El stand que deseamos crear, se envia en el Body</param>
-    /// <returns>Un stand creado en la base de datos o error</returns>
-    /// <remarks>
-    /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
-    ///  
-    /// Ejemplo de uso:
-    /// 
-    ///     POST /api/JPA/CrearStand/
-    ///     BODY:
-    ///     {
-    ///       "id": 0,
-    ///       "nombre_stand": "string",
-    ///       "expositor": "string",
-    ///       "ubicacion": "string",
-    ///       "horario_inicio": "string",
-    ///       "horario_fin": "string"
-    ///     }
-    ///     
-    ///     RESPONSE:
-    ///     {
-    ///       "id": 0,
-    ///       "nombre_stand": "string",
-    ///       "expositor": "string",
-    ///       "ubicacion": "string",
-    ///       "horario_inicio": "string",
-    ///       "horario_fin": "string"
-    ///     }
-    ///     
-    /// </remarks>
-    /// <response code="201" >Devuelve el stand creado en la BD </response>
-    /// <response code="400" >Ocurre un error en la consulta </response>
-    /// <response code="401" >El usuario no genero su JWT</response>
-    /// <response code="403" >Su perfil no cuenta con este permiso</response>
-    /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
-    /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-    [HttpPost]
-    [ActionName("CrearStand")]
-    [Authorize]
-    [ProducesResponseType(typeof(StandJPA), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<StandJPA>> CrearStand(StandJPA stand)
-    {
-        try
-        {
-            if (await TienePermiso(107))
+            string method = "ModificarStand";
+            try
             {
-                Dictionary<string, string> parametros = new() {
-                            { "@nombre_stand",stand.nombre_stand },
-                            { "@hora_ini", stand.horario_inicio },
-                            { "@hora_fin", stand.horario_fin },
-                            { "@ubicacion", stand.ubicacion },
-                            { "@expositor", stand.expositor }
-                        };
-                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Crear_Stand", parametros);
-                //En este caso sino crea es un error en la BD
-                if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                return Created("Stand Creado", new StandJPA(respuesta.Rows[0]));
-            }
-            else return Forbid();
-        }
-        catch (Exception ex)
-        {
-            _logger.RegistrarERROR(ex, "ERROR CREANDO STAND");
-            return BadRequest();
-        }
-    }
-    /// <summary>
-    /// Permite eliminar stands
-    /// </summary>
-    /// <param name="id">Es el id del stand a eliminar</param>
-    /// <returns>Un mensaje de OK o el stand que no se pudo eliminar</returns>
-    /// <remarks>
-    /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
-    ///  
-    /// Ejemplo de uso:
-    /// 
-    ///     POST /api/JPA/EliminarStand/{id}
-    ///     
-    ///     RESPONSE:
-    ///     {
-    ///         "Stand Eliminado"
-    ///     }
-    ///     
-    /// </remarks>
-    /// <response code="200" >Devuelve OK y un mensaje </response>
-    /// <response code="400" >Ocurre un error en la consulta </response>
-    /// <response code="401" >El usuario no genero su JWT</response>
-    /// <response code="403" >Su perfil no cuenta con este permiso</response>
-    /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y devuelve el horario </response>
-    /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>        
-    [HttpDelete("{id}")]
-    [ActionName("EliminarStand")]
-    [Authorize]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> EliminarStand(int id)
-    {
-        try
-        {
-            if (await TienePermiso(108))
-            {
-                string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                if (userData == null || userData == "NO DATA") return Unauthorized();
-                else
+                if (id != stand.id) return BadRequest();
+                //El numero de funcion es: 109
+                if (TienePermiso(109))
                 {
-                    Dictionary<string, string> parametros = new() {
-                           { "@id_stand",id.ToString() }
-                        };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Eliminar_Stand", parametros);
-
-                    if (respuesta.Rows.Count > 0)
+                    stand = JpaAdapter.ModificarStandJPA(stand);
+                    if (stand.id != -1) return Ok(stand);
+                    else return Conflict();
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Permite crear stand
+        /// </summary>
+        /// <param name="stand">El stand que deseamos crear, se envia en el Body</param>
+        /// <returns>Un stand creado en la base de datos o error</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     POST /api/JPA/CrearStand/
+        ///     BODY:
+        ///     {
+        ///       "id": 0,
+        ///       "nombre_stand": "string",
+        ///       "expositor": "string",
+        ///       "ubicacion": "string",
+        ///       "horario_inicio": "string",
+        ///       "horario_fin": "string"
+        ///     }
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///       "id": 0,
+        ///       "nombre_stand": "string",
+        ///       "expositor": "string",
+        ///       "ubicacion": "string",
+        ///       "horario_inicio": "string",
+        ///       "horario_fin": "string"
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="201" >Devuelve el stand creado en la BD </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT</response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpPost]
+        [ActionName("CrearStand")]
+        [Authorize]
+        [ProducesResponseType(typeof(StandJPA), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<StandJPA> CrearStand(StandJPA stand)
+        {
+            string method = "CrearStand";
+            try
+            {
+                if (TienePermiso(107))
+                {
+                    stand = JpaAdapter.CrearStandJPA(stand);
+                    if (stand.id != -1) return Created("Stand Creado", stand);
+                    else return Conflict();
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Permite eliminar stands
+        /// </summary>
+        /// <param name="id">Es el id del stand a eliminar</param>
+        /// <returns>Un mensaje de OK o el stand que no se pudo eliminar</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     POST /api/JPA/EliminarStand/{id}
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///         "Stand Eliminado"
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve OK y un mensaje </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT</response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y devuelve el horario </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>        
+        [HttpDelete("{id}")]
+        [ActionName("EliminarStand")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<string> EliminarStand(int id)
+        {
+            string method = "EliminarStand";
+            try
+            {
+                if (TienePermiso(108))
+                {
+                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+                    if (userData == null || userData == "NO DATA") return Unauthorized();
+                    else
                     {
-                        if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                        else return Conflict(new HorariosSAE(respuesta.Rows[0]));
+                        //ORA ORA ORA ORA ORA ORA ORA ORA ORA
+                        if (JpaAdapter.EliminarStand(id)) return Ok("Stand Eliminado");
+                        //MUDA MUDA MUDA MUDA MUDA MUDA MUDA
+                        else return Conflict();    
                     }
-                    else return Ok("Stand Eliminado");
-
                 }
-
+                else return Forbid();
             }
-            else return Forbid();
-        }
-        catch (Exception ex)
-        {
-            _logger.RegistrarERROR(ex, "ERROR ELIMINANDO STAND");
-            return BadRequest();
-        }
-    }
-    /// <summary>
-    /// Recupera todos los interesados al JPA
-    /// </summary>
-    /// <returns>Un listado con interesados</returns>
-    /// <remarks>
-    /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
-    ///  
-    /// Ejemplo de uso:
-    /// 
-    ///     GET /api/JPA/ObtenerInteresadosEventos/
-    ///     
-    ///     RESPONSE:
-    ///     [
-    ///       {
-    ///         "id": 0,
-    ///         "nombre_interesado": "string",
-    ///         "contacto": "string",
-    ///         "email": "string"
-    ///       }
-    ///     ]
-    ///     
-    /// </remarks>
-    /// <response code="200" >Devuelve un listado de interesados</response>
-    /// <response code="204" >No se encontro ningun interesado </response>
-    /// <response code="400" >Ocurre un error en la consulta </response>
-    /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
-    /// <response code="403" >Su perfil no cuenta con este permiso</response>        
-    /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
-    /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-    [HttpGet]
-    [ActionName("ObtenerInteresadosEventos")]
-    [Authorize]
-    [ProducesResponseType(typeof(IEnumerable<InteresadosSAE>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<InteresadosSAE>>> ObtenerInteresadosEventos()
-    {
-        try
-        {
-            if (await TienePermiso(106))
+            catch (Exception ex)
             {
-                DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_JPA_Listar_Interesados");
-                if (respuesta.Rows.Count == 0) return NoContent();
-                if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                List<InteresadosSAE> listadoInteresados = new();
-                foreach (DataRow row in respuesta.Rows)
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Recupera todos los interesados al JPA
+        /// </summary>
+        /// <returns>Un listado con interesados</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/JPA/ObtenerInteresadosEventos/
+        ///     
+        ///     RESPONSE:
+        ///     [
+        ///       {
+        ///         "id": 0,
+        ///         "nombre_interesado": "string",
+        ///         "contacto": "string",
+        ///         "email": "string"
+        ///       }
+        ///     ]
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve un listado de interesados</response>
+        /// <response code="204" >No se encontro ningun interesado </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>        
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet]
+        [ActionName("ObtenerInteresadosEventos")]
+        [Authorize]
+        [ProducesResponseType(typeof(IEnumerable<InteresadosSAE>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<IEnumerable<InteresadosSAE>> ObtenerInteresadosEventos()
+        {
+            string method = "ObtenerInteresadosEventos";
+            try
+            {
+                if (TienePermiso(106))
                 {
-                    InteresadosSAE eventos = new(row);
-                    listadoInteresados.Add(eventos);
+                    List<InteresadosSAE>? listadoInteresados = JpaAdapter.ObtenerInteresadosEventos();
+
+                    if (listadoInteresados == null) return Conflict();
+                    if (listadoInteresados.Count > 0) return Ok(listadoInteresados);
+                    else return NoContent();
                 }
-                return Ok(listadoInteresados);
-            }
-            else return Forbid();
+                else return Forbid();
 
-        }
-        catch (Exception ex)
-        {
-            _logger.RegistrarERROR(ex, "ERROR LISTANDO INTERESADOS");
-            return BadRequest();
-        }
-    }
-    /// <summary>
-    /// Permite la modificacion de un interesado
-    /// </summary>
-    /// <param name="id"> El ID del interesado a modificar</param>
-    /// <param name="interesado"> Los datos modificados del interesado</param>
-    /// <returns>Un interesado modificado en BD</returns>
-    /// <remarks>
-    /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
-    ///  
-    /// Ejemplo de uso:
-    /// 
-    ///     PUT /api/JPA/ModificarInteresado/{id}
-    ///     BODY:
-    ///     {
-    ///       "id": 0,
-    ///       "nombre_interesado": "string",
-    ///       "contacto": "string",
-    ///       "email": "string"
-    ///     }
-    ///     
-    ///     RESPONSE:
-    ///     {
-    ///       "id": 0,
-    ///       "nombre_interesado": "string",
-    ///       "contacto": "string",
-    ///       "email": "string"
-    ///     }
-    ///     
-    /// </remarks>
-    /// <response code="200" >Devuelve el interesado modificado en BD </response>
-    /// <response code="400" >Ocurre un error en la consulta o el ID es diferente que el del interesado a modificar </response>
-    /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
-    /// <response code="403" >Su perfil no cuenta con este permiso</response>
-    /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y no se modifica el usuario </response>
-    /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-    [HttpPut("{id}")]
-    [ActionName("ModificarInteresado")]
-    [Authorize]
-    [ProducesResponseType(typeof(StandJPA), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<StandJPA>> ModificarInteresado(int id, [FromBody, Required] InteresadosSAE interesado)
-    {
-        try
-        {
-            if (id != interesado.id) return BadRequest();
-            //El numero de funcion es: 109
-            if (await TienePermiso(113))
-            {
-                Dictionary<string, string> parametros = new() {
-                        { "@id_interesado",interesado.id.ToString() },
-                        { "@nombre",interesado.nombre_interesado },
-                        { "@contacto", interesado.contacto },
-                        { "@email", interesado.email }
-                    };
-                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Modificar_Interesados", parametros);
-
-                //En este caso sino modifica nada es un conflicto en la BD
-                if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                return Ok(new InteresadosSAE(respuesta.Rows[0]));
             }
-            else return Forbid();
-        }
-        catch (Exception ex)
-        {
-            _logger.RegistrarERROR(ex, "ERROR MODIFICANDO INTERESADO");
-            return BadRequest();
-        }
-    }
-    /// <summary>
-    /// Permite crear interesados
-    /// </summary>
-    /// <param name="interesado">El interesado que deseamos crear, se envia en el Body</param>
-    /// <returns>Un interesado creado en la base de datos o error</returns>
-    /// <remarks>
-    /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
-    ///  
-    /// Ejemplo de uso:
-    /// 
-    ///     POST /api/JPA/CrearInteresados/
-    ///     BODY:
-    ///     {
-    ///       "id": 0,
-    ///       "nombre_interesado": "string",
-    ///       "contacto": "string",
-    ///       "email": "string"
-    ///     }
-    ///     
-    ///     RESPONSE:
-    ///     {
-    ///       "id": 0,
-    ///       "nombre_interesado": "string",
-    ///       "contacto": "string",
-    ///       "email": "string"
-    ///     }
-    ///     
-    /// </remarks>
-    /// <response code="201" >Devuelve el interesado creado en la BD </response>
-    /// <response code="400" >Ocurre un error en la consulta </response>
-    /// <response code="401" >El empleado no genero su JWT</response>
-    /// <response code="403" >Su perfil no cuenta con este permiso</response>
-    /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
-    /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-    [HttpPost]
-    [ActionName("CrearInteresados")]
-    [Authorize]
-    [ProducesResponseType(typeof(InteresadosSAE), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<InteresadosSAE>> CrearInteresados(InteresadosSAE interesado)
-    {
-        try
-        {
-            if (await TienePermiso(107))
+            catch (Exception ex)
             {
-                Dictionary<string, string> parametros = new() {
-                            { "@nombre",interesado.nombre_interesado },
-                            { "@contacto", interesado.contacto },
-                            { "@email", interesado.email }
-                        };
-                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Crear_Interesado", parametros);
-                //En este caso sino crea es un error en la BD
-                if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                return Created("Interesado Creado", new InteresadosSAE(respuesta.Rows[0]));
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                return BadRequest();
             }
-            else return Forbid();
         }
-        catch (Exception ex)
+        /// <summary>
+        /// Permite la modificacion de un interesado
+        /// </summary>
+        /// <param name="id"> El ID del interesado a modificar</param>
+        /// <param name="interesado"> Los datos modificados del interesado</param>
+        /// <returns>Un interesado modificado en BD</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     PUT /api/JPA/ModificarInteresado/{id}
+        ///     BODY:
+        ///     {
+        ///       "id": 0,
+        ///       "nombre_interesado": "string",
+        ///       "contacto": "string",
+        ///       "email": "string"
+        ///     }
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///       "id": 0,
+        ///       "nombre_interesado": "string",
+        ///       "contacto": "string",
+        ///       "email": "string"
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve el interesado modificado en BD </response>
+        /// <response code="400" >Ocurre un error en la consulta o el ID es diferente que el del interesado a modificar </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y no se modifica el usuario </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpPut("{id}")]
+        [ActionName("ModificarInteresado")]
+        [Authorize]
+        [ProducesResponseType(typeof(StandJPA), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<StandJPA> ModificarInteresado(int id, [FromBody, Required] InteresadosSAE interesado)
         {
-            _logger.RegistrarERROR(ex, "ERROR CREANDO INTERESADO");
-            return BadRequest();
-        }
-    }
-    /// <summary>
-    /// Permite eliminar interesados
-    /// </summary>
-    /// <param name="id">Es el id del interesado a eliminar</param>
-    /// <returns>Un mensaje de OK o el interesado que no se pudo eliminar</returns>
-    /// <remarks>
-    /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
-    ///  
-    /// Ejemplo de uso:
-    /// 
-    ///     POST /api/JPA/EliminarStand/{id}
-    ///     
-    ///     RESPONSE:
-    ///     {
-    ///         "Interesado Eliminado"
-    ///     }
-    ///     
-    /// </remarks>
-    /// <response code="200" >Devuelve OK y un mensaje </response>
-    /// <response code="400" >Ocurre un error en la consulta </response>
-    /// <response code="401" >El usuario no genero su JWT</response>
-    /// <response code="403" >Su perfil no cuenta con este permiso</response>
-    /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y devuelve el horario </response>
-    /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>        
-    [HttpDelete("{id}")]
-    [ActionName("EliminarInteresado")]
-    [Authorize]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult> EliminarInteresado(int id)
-    {
-        try
-        {
-            if (await TienePermiso(112))
+            string method = "ModificarInteresado";
+            try
             {
-                string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                if (userData == null || userData == "NO DATA") return Unauthorized();
-                else
+                if (id != interesado.id) return BadRequest();
+                //El numero de funcion es: 109
+                if (TienePermiso(113))
                 {
-                    Dictionary<string, string> parametros = new() {
-                           { "@id_interesado",id.ToString() }
-                        };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Eliminar_Interesado", parametros);
-
-                    if (respuesta.Rows.Count > 0)
-                    {
-                        if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                        else return Conflict(new InteresadosSAE(respuesta.Rows[0]));
-                    }
-                    else return Ok("Interesado Eliminado");
-
+                    interesado = JpaAdapter.ModificarInteresado(interesado);
+                    if (interesado.id != -1) return Ok(interesado);
+                    else return Conflict();
                 }
-
+                else return Forbid();
             }
-            else return Forbid();
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                return BadRequest();
+            }
         }
-        catch (Exception ex)
+        /// <summary>
+        /// Permite crear interesados
+        /// </summary>
+        /// <param name="interesado">El interesado que deseamos crear, se envia en el Body</param>
+        /// <returns>Un interesado creado en la base de datos o error</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     POST /api/JPA/CrearInteresados/
+        ///     BODY:
+        ///     {
+        ///       "id": 0,
+        ///       "nombre_interesado": "string",
+        ///       "contacto": "string",
+        ///       "email": "string"
+        ///     }
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///       "id": 0,
+        ///       "nombre_interesado": "string",
+        ///       "contacto": "string",
+        ///       "email": "string"
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="201" >Devuelve el interesado creado en la BD </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El empleado no genero su JWT</response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpPost]
+        [ActionName("CrearInteresados")]
+        [Authorize]
+        [ProducesResponseType(typeof(InteresadosSAE), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<InteresadosSAE> CrearInteresados(InteresadosSAE interesado)
         {
-            _logger.RegistrarERROR(ex, "ERROR ELIMINANDO INTERESADO");
-            return BadRequest();
+            string method = "CrearInteresados";
+            try
+            {
+                if (TienePermiso(107))
+                {
+                    interesado = JpaAdapter.CrearInteresado(interesado);
+                    if (interesado.id != -1) return Created("Interesado Creado", interesado);
+                    else return Conflict();
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                return BadRequest();
+            }
         }
-    }
+        /// <summary>
+        /// Permite eliminar interesados
+        /// </summary>
+        /// <param name="id">Es el id del interesado a eliminar</param>
+        /// <returns>Un mensaje de OK o el interesado que no se pudo eliminar</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     POST /api/JPA/EliminarStand/{id}
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///         "Interesado Eliminado"
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve OK y un mensaje </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT</response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y devuelve el horario </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>        
+        [HttpDelete("{id}")]
+        [ActionName("EliminarInteresado")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<string> EliminarInteresado(int id)
+        {
+            string method = "EliminarInteresado";
+            try
+            {
+                if (TienePermiso(112))
+                {
+                    if (JpaAdapter.EliminarStand(id)) return Ok("Interesado Eliminado");
+                    else return Conflict();
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
         /// <summary>
         /// Permite validar si el perfil tiene permiso en la BD para ejecutar este endpoint
         /// </summary>

@@ -2,21 +2,23 @@
 
 namespace API_WEB_SAE_6.Models
 {
+    /// <summary> </summary>
     public class Deportes
     {
-        public int id { get; set; }
-        public string nombre { get; set; }
-        public bool activo { get; set; }
-
-        public Deportes()
-        {
-
-        }
+        /// <summary> </summary>
+        public int id { get; set; } = -1;
+        /// <summary> </summary>
+        public string nombre { get; set; } = "";
+        /// <summary> </summary>
+        public bool activo { get; set; } = false;
+        /// <summary> </summary>
+        public Deportes(){}
+        /// <summary> </summary>
         public Deportes(DataRow data)
         {
             id = int.Parse(data["id"].ToString() ?? "0");
             nombre = data["nombre"].ToString() ?? "ERROR";
-            activo = bool.Parse(data["activo"].ToString() ?? "0");
+            activo = (data["activo"].ToString() == "0");
         }
     }
 }
