@@ -2744,7 +2744,6 @@ namespace API_WEB_SAE_6.Controllers
         //                string usuarioActual = userData.Split(',')[2];
         //                Dictionary<string, string> parametros = new() {
         //                    {"@id_torneo", id_torneo.ToString() },
-        //                    {"@id_inscripto", id_deportista.ToString() },
         //                };
         //                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Crear_Inscripcion_Torneo", parametros);
         //                //En este caso sino crea es un error en la BD
