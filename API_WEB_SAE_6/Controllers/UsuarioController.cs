@@ -1,18 +1,12 @@
 ﻿using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models;
 using Microsoft.AspNetCore.Cors;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
-using System.Net;
-using Microsoft.AspNetCore.Authentication;
-using System.Data;
 using System.ComponentModel.DataAnnotations;
 using API_WEB_SAE_6.Tools;
 using API_WEB_SAE_6.Adapters;
@@ -115,14 +109,13 @@ namespace API_WEB_SAE_6.Controllers
 
             //string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
             if (SecretKey == "ERROR") Conflict();
-            string method = "ObtenerTokenJWT";
             Usuarios? usr = UserAdapter.BuscarUsuarioActivoXLegajo(legajo);
             if (usr != null && usr.legajo != "" && usr.id_perfil != -1 && usr.id != -1)
             {
                 string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
                 if (ip != null && ip != "" && UserAdapter.CrearSesionUsuario(usr.id))
                 {
-                    Logger.RegistrarDatos(Logger.LogOptions.IP, method,"IP: "+ip, ControllerName);
+                    Logger.RegistrarDatos(Logger.LogOptions.IP, this.Request.Path,"IP: "+ip, ControllerName);
                     byte[] keyBytes = Encoding.UTF8.GetBytes(SecretKey);
                     ClaimsIdentity claims = new();
                     //Guardamos todos los datos necesarios para operar mas adelante
@@ -143,7 +136,7 @@ namespace API_WEB_SAE_6.Controllers
                 }
                 else
                 {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, method, "ERROR AL CREAR LA SESION EN LA BASE DE DATOS. ACCESO NO AUTORIZADO", ControllerName);
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, "ERROR AL CREAR LA SESION EN LA BASE DE DATOS. ACCESO NO AUTORIZADO", ControllerName);
                     return Conflict();
                 }
             }
@@ -193,7 +186,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<IEnumerable<Usuarios>> ObtenerUsuarios()
         {
-            string method = "ObtenerUsuarios";
             try
             {
                 //El numero de funcion es: 9
@@ -211,7 +203,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error,method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error,this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -256,7 +248,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<Usuarios> ObtenerUsuarioXId(int id)
         {
-            string method = "ObtenerUsuarioXId";
             try
             {
                 if (TienePermiso(10))
@@ -271,7 +262,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -316,7 +307,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<Usuarios> ObtenerUsuarioXlegajo(string legajo)
         {
-            string method = "ObtenerUsuarioXlegajo";
             try
             {
                 //El numero de funcion es: 11
@@ -331,7 +321,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -384,7 +374,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<Usuarios> ModificarUsuario(int id, [FromBody, Required] Usuarios user)
         {
-            string method = "ModificarUsuario";
             try
             {
                 if (id != user.id) return BadRequest();
@@ -409,7 +398,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -460,7 +449,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<Usuarios> CrearUsuario([FromBody] Usuarios user)
         {
-            string method = "CrearUsuario";
             try
             {
                 if (TienePermiso(13))
@@ -482,7 +470,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }

@@ -73,7 +73,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<IEnumerable<EventosSAE>> ObtenerEventosPublicos()
         {
-            string method = "ObtenerEventosPublicos";
             try
             {
                 List<EventosSAE>? listadoEventosCompleto = JpaAdapter.ObtenerEventosPublicos();
@@ -85,7 +84,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -133,7 +132,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<IEnumerable<EventosSAE>> ObtenerEventosSAE()
         {
-            string method = "ObtenerEventosSAE";
             try
             {
                 //El numero de funcion es: 105
@@ -151,7 +149,7 @@ namespace API_WEB_SAE_6.Controllers
                     }
                     catch (Exception ex)
                     {
-                        Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                        Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                         return BadRequest();
                     }
                 }
@@ -159,7 +157,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -206,7 +204,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<EventosSAE> ObtenerEventosXId(int id)
         {
-            string method = "ObtenerEventosXId";
             try
             {
                 if (TienePermiso(105))
@@ -220,7 +217,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -276,7 +273,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<EventosSAE> ModificarEvento(int id, [FromBody, Required] EventosSAE eventoSAE)
         {
-            string method = "ModificarEvento";
             try
             {
                 if (id != eventoSAE.id) return BadRequest();
@@ -291,7 +287,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -346,7 +342,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<EventosSAE> CrearEvento([FromBody] EventosSAE eventoSAE)
         {
-            string method = "CrearEvento";
             try
             {
                 if (TienePermiso(102))
@@ -364,7 +359,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -403,7 +398,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<string> EliminarEvento(int id)
         {
-            string method = "EliminarEvento";
             try
             {
                 if (TienePermiso(103))
@@ -421,7 +415,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -467,7 +461,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<IEnumerable<StandJPA>> ObtenerStands()
         {
-                string method = "ObtenerStands";
             try
             {
                 List<StandJPA>? listadoStandsCompleto = JpaAdapter.ObtenerStandsCompleto();
@@ -480,7 +473,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -534,7 +527,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<StandJPA> ModificarStand(int id, [FromBody, Required] StandJPA stand)
         {
-            string method = "ModificarStand";
             try
             {
                 if (id != stand.id) return BadRequest();
@@ -549,7 +541,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -602,7 +594,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<StandJPA> CrearStand(StandJPA stand)
         {
-            string method = "CrearStand";
             try
             {
                 if (TienePermiso(107))
@@ -615,7 +606,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -654,7 +645,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<string> EliminarStand(int id)
         {
-            string method = "EliminarStand";
             try
             {
                 if (TienePermiso(108))
@@ -673,7 +663,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -718,7 +708,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<IEnumerable<InteresadosSAE>> ObtenerInteresadosEventos()
         {
-            string method = "ObtenerInteresadosEventos";
             try
             {
                 if (TienePermiso(106))
@@ -734,7 +723,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -784,7 +773,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<StandJPA> ModificarInteresado(int id, [FromBody, Required] InteresadosSAE interesado)
         {
-            string method = "ModificarInteresado";
             try
             {
                 if (id != interesado.id) return BadRequest();
@@ -799,7 +787,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -848,7 +836,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<InteresadosSAE> CrearInteresados(InteresadosSAE interesado)
         {
-            string method = "CrearInteresados";
             try
             {
                 if (TienePermiso(107))
@@ -861,7 +848,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -900,7 +887,6 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<string> EliminarInteresado(int id)
         {
-            string method = "EliminarInteresado";
             try
             {
                 if (TienePermiso(112))
@@ -912,7 +898,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }

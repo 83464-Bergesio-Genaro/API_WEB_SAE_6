@@ -201,10 +201,8 @@ namespace API_WEB_SAE_6.Adapters
                     Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearUsuario", ex.Message, "UsuarioAdapter");
                     return new();
                 }
-
             }
             else return new();
-            
         }
         /// <summary>
         /// 

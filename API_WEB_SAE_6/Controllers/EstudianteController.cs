@@ -97,7 +97,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, "DescargarDocumentacionXId", ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -165,7 +165,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, "ListarDocumentacionXLegajo", ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -244,7 +244,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarDocumento", ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -322,7 +322,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearDocumento", ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error,this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -371,7 +371,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearDocumento", ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error,this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }

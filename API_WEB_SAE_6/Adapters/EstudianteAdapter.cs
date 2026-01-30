@@ -166,7 +166,7 @@ namespace API_WEB_SAE_6.Adapters
                     DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_ESTUDIANTE_Buscar_Documento_Id", parameters);
                     if (respuesta.Rows.Count > 0)
                     {
-                        if (respuesta.Rows[0][0].ToString() == "ERROR") Logger.RegistrarDatos(Logger.LogOptions.Error, "EliminarStand", "Imposible eliminar el interesado: " + idInteresado, "UsuarioAdapter");
+                        if (respuesta.Rows[0][0].ToString() == "ERROR") Logger.RegistrarDatos(Logger.LogOptions.Error, "EliminarStand", "Imposible eliminar el interesado: " + idDocumento, "UsuarioAdapter");
                         return false;
                     }
                     else return true;

@@ -856,5 +856,527 @@ namespace API_WEB_SAE_6.Adapters
                 return null;
             }
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="deport"></param>
+        /// <returns></returns>
+        public Deportes ModificarDeporte(Deportes deport)
+        {
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = 
+                        [new("i_id_deporte", MySqlDbType.Int32) { Value = deport.id },
+                        new("i_nombre", MySqlDbType.VarChar) { Value = deport.nombre },
+                        new("i_activo", MySqlDbType.Bit) { Value = deport.activo  }];
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Modificar_Deporte", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                else return new();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarDeporte", ex.Message, "DeporteAdapter");
+                return new();
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="espacio"></param>
+        /// <returns></returns>
+        public EspaciosDeportivos ModificarEspacioDeportivo(EspaciosDeportivos espacio)
+        {
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters =
+                        [new("i_id_espacio", MySqlDbType.Int32) { Value = espacio.id},
+                        new("i_nombre", MySqlDbType.VarChar) { Value = espacio.nombre},
+                        new("i_activo", MySqlDbType.Bit) { Value = espacio.activo},
+                        new("i_domicilio", MySqlDbType.VarChar) { Value = espacio.domicilio},
+                        new("i_url_maps", MySqlDbType.VarChar) { Value = espacio.url_maps  }];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Modificar_Espacio_Deportivo", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                else return new();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarEspacioDeportivo", ex.Message, "DeporteAdapter");
+                return new();
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="docente"></param>
+        /// <param name="idUserMod"></param>
+        /// <returns></returns>
+        public DocentesDeportivos ModificarDocente(DocentesDeportivos docente,string idUserMod)
+        {
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters =
+                        [new("i_cuil_doc", MySqlDbType.VarChar) { Value = docente.cuil},
+                        new("i_nombres", MySqlDbType.VarChar) { Value = docente.nombres},
+                        new("i_activo", MySqlDbType.Bit) { Value = docente.activo},
+                        new("i_fecha_nacimiento", MySqlDbType.VarChar) { Value = docente.fecha_nacimiento},
+                        new("i_id_usuario_mod", MySqlDbType.VarChar) { Value = idUserMod }];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Modificar_Docente_Deportivo", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                else return new();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarDocente", ex.Message, "DeporteAdapter");
+                return new();
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="deportista"></param>
+        /// <param name="idUserMod"></param>
+        /// <returns></returns>
+        public Deportista ModificarDeportista(Deportista deportista, string idUserMod)
+        {
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters =
+                        [new("i_id_deportista", MySqlDbType.Int32) { Value = deportista.id},
+                        new("i_legajo", MySqlDbType.VarChar) { Value = deportista.legajo},
+                        new("i_habilitado", MySqlDbType.Bit) { Value = deportista.habilitado_deporte},
+                        new("i_vencimiento_ficha", MySqlDbType.VarChar) { Value = deportista.vencimiento_ficha},
+                        new("i_id_usuario_mod", MySqlDbType.VarChar) { Value = idUserMod }];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Modificar_Deportista", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                else return new();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarDeportista", ex.Message, "DeporteAdapter");
+                return new();
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="torneo"></param>
+        /// <param name="idUserMod"></param>
+        /// <returns></returns>
+        public TorneoDeportivo ModificarTorneo(TorneoDeportivo torneo, string idUserMod)
+        {
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters =
+                        [new("i_id_torneo", MySqlDbType.Int32) { Value = torneo.id},
+                        new("i_nombre_torneo", MySqlDbType.VarChar) { Value = torneo.nombre_deporte},
+                        new("i_fecha_ini", MySqlDbType.VarChar) { Value = torneo.fecha_inicio},
+                        new("i_fecha_fin", MySqlDbType.VarChar) { Value = torneo.fecha_fin},
+                        new("i_fecha_limite", MySqlDbType.VarChar) { Value = torneo.fecha_limite_inscripcion},
+                        new("i_activo", MySqlDbType.Bit) { Value = torneo.activo},
+                        new("i_id_deporte", MySqlDbType.Int32) { Value = torneo.id_deporte},
+                        new("i_cuil_docente", MySqlDbType.VarChar) { Value = torneo.cuil_responsable},
+                        new("i_cupo", MySqlDbType.Int32) { Value = torneo.cupo_jugadores},
+                        new("i_id_usuario_mod", MySqlDbType.VarChar) { Value = idUserMod }];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Modificar_Torneo", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                else return new();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarTorneo", ex.Message, "DeporteAdapter");
+                return new();
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="horario"></param>
+        /// <param name="idUserMod"></param>
+        /// <returns></returns>
+        public HorarioDeportes ModificarHorario(HorarioDeportes horario, string idUserMod)
+        {
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters =
+                        [new("i_id_horario", MySqlDbType.Int32) { Value = horario.id},
+                        new("i_id_espacio", MySqlDbType.VarChar) { Value = horario.nombre_deporte},
+                        new("i_id_deporte", MySqlDbType.Int32) { Value = horario.id_deporte},
+                        new("i_hora_ini", MySqlDbType.VarChar) { Value = horario.hora_inicio},
+                        new("i_hora_fin", MySqlDbType.VarChar) { Value = horario.hora_fin},
+                        new("i_activo", MySqlDbType.Bit) { Value = horario.activo},
+                        new("i_cuil_doc", MySqlDbType.VarChar) { Value = horario.cuil_docente},
+                        new("i_dia", MySqlDbType.Int32) { Value = horario.dia}
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Modificar_Torneo", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                else return new();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarTorneo", ex.Message, "DeporteAdapter");
+                return new();
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="deport"></param>
+        /// <returns></returns>
+        public Deportes CrearDeporte(Deportes deport)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_nombre", MySqlDbType.VarChar) { Value = deport.nombre },
+                        new("i_activo", MySqlDbType.Bit) { Value = deport.activo }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Crear_Deporte", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearDeporte", ex.Message, "DeporteAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="legajo"></param>
+        /// <param name="idCreacion"></param>
+        /// <returns></returns>
+        public Deportista CrearDeportista(string legajo,int idCreacion)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_legajo", MySqlDbType.VarChar) { Value = legajo },
+                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idCreacion }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Crear_Deportista", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearDeportista", ex.Message, "DeporteAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="docente"></param>
+        /// <param name="idCreacion"></param>
+        /// <returns></returns>
+        public DocentesDeportivos CrearDocente(DocentesDeportivos docente,int idCreacion)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_cuil_doc", MySqlDbType.VarChar) { Value = docente.cuil },
+                        new("i_nombres", MySqlDbType.VarChar) { Value = docente.nombres },
+                        new("i_apellidos", MySqlDbType.VarChar) { Value = docente.apellidos },
+                        new("i_activo", MySqlDbType.Bit) { Value = docente.activo },
+                        new("i_fecha_nacimiento", MySqlDbType.Date) { Value = docente.fecha_nacimiento },
+                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idCreacion }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Crear_Docente_Deportivo", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearDocente", ex.Message, "DeporteAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="espacio"></param>
+        /// <returns></returns>
+        public EspaciosDeportivos CrearEspacioDeportivo(EspaciosDeportivos espacio)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_nombre", MySqlDbType.VarChar) { Value = espacio.nombre},
+                        new("i_domicilio", MySqlDbType.VarChar) { Value =espacio.domicilio },
+                        new("i_activo", MySqlDbType.Bit) { Value = espacio.activo },
+                        new("i_url_maps", MySqlDbType.Date) { Value = espacio.url_maps }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Crear_Espacio_Deportivo", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearEspacioDeportivo", ex.Message, "DeporteAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="horario"></param>
+        /// <returns></returns>
+        public HorarioDeportes CrearHorario(HorarioDeportes horario)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_espacio", MySqlDbType.Int32) { Value = horario.id_espacio_deportivo},
+                        new("i_id_deporte", MySqlDbType.Int32) { Value = horario.id_deporte },
+                        new("i_hora_ini", MySqlDbType.Time) { Value = horario.hora_inicio },
+                        new("i_hora_fin", MySqlDbType.Time) { Value = horario.hora_fin },
+                        new("i_activo", MySqlDbType.Bit) { Value = horario.activo},
+                        new("i_cuil_doc", MySqlDbType.VarChar) { Value = horario.cuil_docente},
+                        new("dia", MySqlDbType.Int32) { Value = horario.dia}
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Crear_Horario_Deporte", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearEspacioDeportivo", ex.Message, "DeporteAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="torneo"></param>
+        /// <param name="idCreacion"></param>
+        /// <returns></returns>
+        public TorneoDeportivo CrearTorneo(TorneoDeportivo torneo, int idCreacion)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_nombre_torneo", MySqlDbType.Int32) { Value = torneo.nombre_torneo},
+                        new("i_fecha_ini", MySqlDbType.Date) { Value = torneo.fecha_inicio },
+                        new("i_fecha_fin", MySqlDbType.Date) { Value = torneo.fecha_fin },
+                        new("i_fecha_limite", MySqlDbType.Date) { Value = torneo.fecha_limite_inscripcion},
+                        new("i_activo", MySqlDbType.Bit) { Value = torneo.activo},
+                        new("i_id_deporte", MySqlDbType.Int32) { Value = torneo.id_deporte},
+                        new("i_cuil_docente", MySqlDbType.VarChar) { Value = torneo.cuil_responsable},
+                        new("i_cupo", MySqlDbType.Int32) { Value = torneo.cupo_jugadores},
+                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idCreacion}
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Crear_Torneo", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearTorneo", ex.Message, "DeporteAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="idTorneo"></param>
+        /// <param name="idDeportista"></param>
+        /// <returns></returns>
+        public TorneosXInscripcion CrearInscripcionTorneo(int idTorneo,int idDeportista)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_torneo", MySqlDbType.Int32) { Value = idTorneo},
+                        new("i_id_inscripto", MySqlDbType.Int32) { Value = idDeportista }];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Crear_Inscripcion_Torneo", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearInscripcionTorneo", ex.Message, "DeporteAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="idDeporte"></param>
+        /// <param name="idDeportista"></param>
+        /// <returns></returns>
+        public DeporteXInscripcion CrearInscripcionDeporte(int idDeporte, int idDeportista)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_deporte", MySqlDbType.Int32) { Value = idDeporte},
+                        new("i_id_inscripto", MySqlDbType.Int32) { Value = idDeportista }];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Crear_Inscripcion_Deporte", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearInscripcionDeporte", ex.Message, "DeporteAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="idHorario"></param>
+        /// <returns></returns>
+        public bool EliminarHorarioDeportivo(int idHorario)
+        {
+            List<MySqlParameter> parameters = [new("i_id_horario", MySqlDbType.Int32) { Value = idHorario }];
+
+            GeneralAdapterMySQL consult = new();
+            DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Eliminar_Horario_Deportivo", parameters);
+
+            if (respuesta.Rows.Count > 0) return false;
+            else return true;
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="idInscripcion"></param>
+        /// <returns></returns>
+        public bool EliminarInscripcionTorneo(int idInscripcion)
+        {
+            List<MySqlParameter> parameters = [new("i_id_inscripcion", MySqlDbType.Int32) { Value = idInscripcion }];
+
+            GeneralAdapterMySQL consult = new();
+            DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Eliminar_Inscripcion_Torneo", parameters);
+
+            if (respuesta.Rows.Count > 0) return false;
+            else return true;
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="idInscripcion"></param>
+        /// <returns></returns>
+        public bool EliminarInscripcionDeporte(int idInscripcion)
+        {
+            List<MySqlParameter> parameters = [new("i_id_inscripcion", MySqlDbType.Int32) { Value = idInscripcion }];
+
+            GeneralAdapterMySQL consult = new();
+            DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Eliminar_Inscripcion_Deporte", parameters);
+
+            if (respuesta.Rows.Count > 0) return false;
+            else return true;
+        }
     }
 }
