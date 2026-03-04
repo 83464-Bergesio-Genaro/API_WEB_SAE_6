@@ -31,7 +31,7 @@ namespace API_WEB_SAE_6.Models
             id = int.Parse(data["id"].ToString() ?? "0");
             nombre = data["nombre"].ToString() ?? "ERROR";
             domicilio = data["domicilio"].ToString() ?? "ERROR";
-            activo = (data["activo"].ToString() == "0");
+            activo = (data["activo"].ToString() == "1");
             url_maps = data["url_maps"].ToString() ?? "ERROR";
         }
     }

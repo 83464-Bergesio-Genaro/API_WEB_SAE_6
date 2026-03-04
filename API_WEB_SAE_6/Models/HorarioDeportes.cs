@@ -44,7 +44,7 @@ namespace API_WEB_SAE_6.Models
             nombre_deporte = data["nombre_deporte"].ToString() ?? "NO DATA";
             hora_inicio = data["hora_inicio"].ToString() ?? "00:00:00";
             hora_fin = data["hora_fin"].ToString() ?? "00:00:00";
-            activo = (data["activo"].ToString() == "0");
+            activo = (data["activo"].ToString() == "1");
             cuil_docente = data["cuil_docente"].ToString() ?? "ERROR";
             docente_responsable = data["docente_responsable"].ToString() ?? "ERROR";
             dia = int.Parse(data["dia"].ToString() ?? "0");

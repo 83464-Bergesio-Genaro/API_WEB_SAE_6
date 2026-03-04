@@ -1856,11 +1856,16 @@ namespace API_WEB_SAE_6.Controllers
                 if (TienePermiso(35))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    docente = DeportAdapter.ModificarDocente(docente, usuarioActual);
-                    if (docente.cuil != "") return Ok(docente);
-                    else return Conflict();
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        docente = DeportAdapter.ModificarDocente(docente, idUserMod);
+                        if (docente.cuil != "") return Ok(docente);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
@@ -1925,11 +1930,16 @@ namespace API_WEB_SAE_6.Controllers
                 if (TienePermiso(29))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    deportista = DeportAdapter.ModificarDeportista(deportista, usuarioActual);
-                    if (deportista.id != -1) return Ok(deportista);
-                    else return Conflict();
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        deportista = DeportAdapter.ModificarDeportista(deportista, idUserMod);
+                        if (deportista.id != -1) return Ok(deportista);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
@@ -2005,11 +2015,16 @@ namespace API_WEB_SAE_6.Controllers
                 if (TienePermiso(22))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    torneo = DeportAdapter.ModificarTorneo(torneo, usuarioActual);
-                    if (torneo.id != -1) return Ok(torneo);
-                    else return Conflict();
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        torneo = DeportAdapter.ModificarTorneo(torneo, idUserMod);
+                        if (torneo.id != -1) return Ok(torneo);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
@@ -2085,11 +2100,16 @@ namespace API_WEB_SAE_6.Controllers
                 if (TienePermiso(38))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    horario = DeportAdapter.ModificarHorario(horario, usuarioActual);
-                    if (horario.id != -1) return Ok(horario);
-                    else return Conflict();
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        horario = DeportAdapter.ModificarHorario(horario);
+                        if (horario.id != -1) return Ok(horario);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }

@@ -31,7 +31,7 @@ namespace API_WEB_SAE_6.Models
             cuil = data["cuil"].ToString() ?? "ERROR";
             nombres = data["nombres"].ToString() ?? "ERROR";
             apellidos = data["apellidos"].ToString() ?? "ERROR";
-            activo = (data["activo"].ToString() == "0");
+            activo = (data["activo"].ToString() == "1");
             fecha_nacimiento = DateTime.Parse(data["fecha_nacimiento"].ToString() ?? "1900-01-01");
         }
     }

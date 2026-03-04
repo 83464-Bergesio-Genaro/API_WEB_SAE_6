@@ -925,7 +925,7 @@ namespace API_WEB_SAE_6.Adapters
         /// <param name="docente"></param>
         /// <param name="idUserMod"></param>
         /// <returns></returns>
-        public DocentesDeportivos ModificarDocente(DocentesDeportivos docente,string idUserMod)
+        public DocentesDeportivos ModificarDocente(DocentesDeportivos docente,int idUserMod)
         {
             try
             {
@@ -938,7 +938,7 @@ namespace API_WEB_SAE_6.Adapters
                         new("i_nombres", MySqlDbType.VarChar) { Value = docente.nombres},
                         new("i_activo", MySqlDbType.Bit) { Value = docente.activo},
                         new("i_fecha_nacimiento", MySqlDbType.VarChar) { Value = docente.fecha_nacimiento},
-                        new("i_id_usuario_mod", MySqlDbType.VarChar) { Value = idUserMod }];
+                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }];
 
                     GeneralAdapterMySQL consult = new();
                     DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Modificar_Docente_Deportivo", parameters);
@@ -959,7 +959,7 @@ namespace API_WEB_SAE_6.Adapters
         /// <param name="deportista"></param>
         /// <param name="idUserMod"></param>
         /// <returns></returns>
-        public Deportista ModificarDeportista(Deportista deportista, string idUserMod)
+        public Deportista ModificarDeportista(Deportista deportista, int idUserMod)
         {
             try
             {
@@ -971,8 +971,8 @@ namespace API_WEB_SAE_6.Adapters
                         [new("i_id_deportista", MySqlDbType.Int32) { Value = deportista.id},
                         new("i_legajo", MySqlDbType.VarChar) { Value = deportista.legajo},
                         new("i_habilitado", MySqlDbType.Bit) { Value = deportista.habilitado_deporte},
-                        new("i_vencimiento_ficha", MySqlDbType.VarChar) { Value = deportista.vencimiento_ficha},
-                        new("i_id_usuario_mod", MySqlDbType.VarChar) { Value = idUserMod }];
+                        new("i_vencimiento_ficha", MySqlDbType.Date) { Value = deportista.vencimiento_ficha},
+                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }];
 
                     GeneralAdapterMySQL consult = new();
                     DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Modificar_Deportista", parameters);
@@ -993,7 +993,7 @@ namespace API_WEB_SAE_6.Adapters
         /// <param name="torneo"></param>
         /// <param name="idUserMod"></param>
         /// <returns></returns>
-        public TorneoDeportivo ModificarTorneo(TorneoDeportivo torneo, string idUserMod)
+        public TorneoDeportivo ModificarTorneo(TorneoDeportivo torneo, int idUserMod)
         {
             try
             {
@@ -1011,7 +1011,7 @@ namespace API_WEB_SAE_6.Adapters
                         new("i_id_deporte", MySqlDbType.Int32) { Value = torneo.id_deporte},
                         new("i_cuil_docente", MySqlDbType.VarChar) { Value = torneo.cuil_responsable},
                         new("i_cupo", MySqlDbType.Int32) { Value = torneo.cupo_jugadores},
-                        new("i_id_usuario_mod", MySqlDbType.VarChar) { Value = idUserMod }];
+                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }];
 
                     GeneralAdapterMySQL consult = new();
                     DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Modificar_Torneo", parameters);
@@ -1030,9 +1030,8 @@ namespace API_WEB_SAE_6.Adapters
         /// 
         /// </summary>
         /// <param name="horario"></param>
-        /// <param name="idUserMod"></param>
         /// <returns></returns>
-        public HorarioDeportes ModificarHorario(HorarioDeportes horario, string idUserMod)
+        public HorarioDeportes ModificarHorario(HorarioDeportes horario)
         {
             try
             {

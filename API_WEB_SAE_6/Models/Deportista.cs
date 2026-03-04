@@ -25,7 +25,7 @@ namespace API_WEB_SAE_6.Models
             id = int.Parse(data["id"].ToString() ?? "0");
             legajo = data["legajo"].ToString() ?? "ERROR";
             nombre_deportista = data["nombre_deportista"].ToString() ?? "ERROR";
-            habilitado_deporte = (data["habilitado_deporte"].ToString() == "0");
+            habilitado_deporte = (data["habilitado_deporte"].ToString() == "1");
             vencimiento_ficha = data["vencimiento_ficha_medica"] == null || data["vencimiento_ficha_medica"].ToString() == "" ? null : DateTime.Parse(data["vencimiento_ficha_medica"].ToString() ?? "1900-01-01");
         }
     }

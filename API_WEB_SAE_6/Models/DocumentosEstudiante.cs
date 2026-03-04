@@ -30,7 +30,7 @@ namespace API_WEB_SAE_6.Models
             id_tipo_documento = int.Parse(data["id_tipo_documento"].ToString() ?? "0");
             nombre_documento = data["nombre_documento"].ToString() ?? "ERROR";
             datos_documento = data["datos_documento"] == null || data["datos_documento"].ToString() == "" ? null : (byte[])data["datos_documento"];
-            extension = data["extension"].ToString() ?? "0";
+            extension = data["extension"].ToString() ?? ".txt";
         }
     }
 }

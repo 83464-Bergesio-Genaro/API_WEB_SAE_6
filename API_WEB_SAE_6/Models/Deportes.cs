@@ -18,7 +18,7 @@ namespace API_WEB_SAE_6.Models
         {
             id = int.Parse(data["id"].ToString() ?? "0");
             nombre = data["nombre"].ToString() ?? "ERROR";
-            activo = (data["activo"].ToString() == "0");
+            activo = (data["activo"].ToString() == "1");
         }
     }
 }

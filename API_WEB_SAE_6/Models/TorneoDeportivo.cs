@@ -43,7 +43,7 @@ namespace API_WEB_SAE_6.Models
             fecha_inicio = DateTime.Parse(data["fecha_inicio"].ToString() ?? "1900-01-01");
             fecha_fin = DateTime.Parse(data["fecha_fin"].ToString() ?? "1900-01-01");
             fecha_limite_inscripcion = DateTime.Parse(data["fecha_limite_inscripcion"].ToString() ?? "1900-01-01");
-            activo = (data["activo"].ToString() == "0");
+            activo = (data["activo"].ToString() == "1");
             id_deporte = int.Parse(data["id_deporte"].ToString() ?? "0");
             nombre_deporte = data["nombre_deporte"].ToString() ?? "ERROR";
             cuil_responsable = data["cuil_docente_responsable"].ToString() ?? "ERROR";
