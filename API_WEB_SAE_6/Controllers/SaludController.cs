@@ -323,7 +323,6 @@ namespace API_WEB_SAE_6.Controllers
                         else return Conflict();
                     }
                     else return Unauthorized();
-
                 }
                 else return Forbid();
             }
