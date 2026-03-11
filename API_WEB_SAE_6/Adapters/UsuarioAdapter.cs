@@ -207,6 +207,42 @@ namespace API_WEB_SAE_6.Adapters
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="legajo"></param>
+        /// <param name="nombres"></param>
+        /// <param name="apellidos"></param>
+        /// <param name="idEspecialidad"></param>
+        /// <returns></returns>
+        public Usuarios CrearEstudiante(string legajo, string nombres, string apellidos,int idEspecialidad)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_legajo", MySqlDbType.VarChar) { Value = legajo },
+                        new("i_nombres", MySqlDbType.VarChar) { Value = nombres },
+                        new("i_apellidos", MySqlDbType.VarChar) { Value = apellidos},
+                        new("i_id_especialidad", MySqlDbType.Int32) { Value = idEspecialidad }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_USUARIOS_Crear_Nuevo_Estudiante", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearUsuario", ex.Message, "UsuarioAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="id_funcion"></param>
         /// <param name="id_perfil"></param>
         /// <returns></returns>
