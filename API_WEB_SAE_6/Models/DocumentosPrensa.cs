@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.IO.Compression;
 
 namespace API_WEB_SAE_6.Models
 {
@@ -20,17 +21,25 @@ namespace API_WEB_SAE_6.Models
         /// </summary>
         public string nombre_documento { get; set; } = "";
         /// <summary>
-        /// Propiedad que representa los datos del documento de prensa, esta propiedad es de tipo byte array y es la data del documento que se encuentra en la base de datos, esta propiedad puede ser nula si no se encuentran datos en la base de datos o si ocurre un error al obtener los datos del documento, si ocurre un error al obtener los datos del documento se asigna el valor null a esta propiedad.
-        /// </summary>
-        public byte[]? datos_documento { get; set; }
-        /// <summary>
         /// Propiedad que representa la extension del documento de prensa, esta propiedad es de tipo string y es la extension del documento que se encuentra en la base de datos, esta propiedad no puede ser nula ni vacia, si ocurre un error al obtener la extension del documento se asigna el valor "ERROR" a esta propiedad.
         /// </summary>
         public string extension { get; set; } = "";
         /// <summary>
+        /// Tamaño en Bytes del archivo, en la base es INT y deberia contemplar hasta los 50mb
+        /// </summary>
+        public long tamanio { get; set; } = -1;
+        /// <summary>
+        /// Locacion en el sistema de archivos
+        /// </summary>
+        public string ruta { get; set; } = "";
+        /// <summary>
         /// Propiedad que representa el id de vinculacion del documento de prensa, esta propiedad es de tipo entero y es una clave foranea que hace referencia a la tabla de vinculaciones en la base de datos, esta propiedad puede ser nula si no se encuentran datos en la base de datos o si ocurre un error al obtener el id de vinculacion del documento, si ocurre un error al obtener el id de vinculacion del documento se asigna el valor null a esta propiedad.
         /// </summary>
         public int? id_vinculacion { get; set; }
+        /// <summary>
+        /// Cree este campo que no tiene un reflejo en la base de datos para evitar la descarga de cualquier tipo de archivo
+        /// </summary>
+        public bool libre_consumo { get; set; }=false;
         /// <summary>
         /// Constructor de la clase DocumentosPrensa, este constructor es el constructor por defecto de la clase, este constructor no recibe parametros y no realiza ninguna accion, este constructor es necesario para poder crear objetos de la clase DocumentosPrensa sin necesidad de pasarle datos al constructor, este constructor es utilizado principalmente para crear objetos vacios de la clase DocumentosPrensa que luego pueden ser llenados con datos obtenidos de la base de datos o de otras fuentes, si se desea crear un objeto de la clase DocumentosPrensa con datos se debe utilizar el constructor que recibe un DataRow como parametro.
         /// </summary>
@@ -44,9 +53,11 @@ namespace API_WEB_SAE_6.Models
             id = int.Parse(data["id"].ToString() ?? "0");
             id_tipo_documento = int.Parse(data["id_tipo_documento"].ToString() ?? "0");
             nombre_documento = data["nombre_documento"].ToString() ?? "ERROR";
-            datos_documento = data["datos_documento"] == null || data["datos_documento"].ToString() == "" ? null : (byte[])data["datos_documento"];
-            extension = data["extension"].ToString() ?? "0";
+            tamanio = int.Parse(data["tamanio"].ToString() ?? "0");
+            ruta = data["ruta"].ToString() ?? "";
+            extension = data["extension"].ToString() ?? "";
             id_vinculacion = data["id_vinculacion"] == null || data["id_vinculacion"].ToString() == "" ? null : int.Parse(data["id_vinculacion"].ToString() ?? "0");
+            libre_consumo = ruta.Contains("Publico");//Solo los archivos publicos pueden ser consumidos desde descargas endpoint
         }
     }
 }

@@ -40,6 +40,10 @@ namespace API_WEB_SAE_6.Models
         /// </summary>
         public int visualizaciones { get; set; } = -1;
         /// <summary>
+        /// Cree esta columna para dar mostrar que documentos estan asociados en el front end y el usuario haciendo click pueda descargarlo
+        /// </summary>
+        public string? documentos_asociados { get; set; }
+        /// <summary>
         /// Constructor por defecto de la clase Publicaciones. Inicializa los campos con valores predeterminados.
         /// </summary>
         public Publicaciones(){}
@@ -57,6 +61,7 @@ namespace API_WEB_SAE_6.Models
             prioridad = int.Parse(data["prioridad"].ToString() ?? "0");
             no_dar_baja = (data["no_dar_baja"].ToString() == "1");
             visualizaciones = int.Parse(data["visualizaciones"].ToString() ?? "0");
+            documentos_asociados = data["documentos_asociados"].ToString();
         }
     }
 }

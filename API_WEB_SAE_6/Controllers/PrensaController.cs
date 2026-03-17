@@ -1,10 +1,13 @@
 ﻿using API_WEB_SAE_6.Adapters;
 using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models;
+using API_WEB_SAE_6.Tools;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using System.Data;
+using System.IO.Compression;
 using System.Security.Claims;
 
 namespace API_WEB_SAE_6.Controllers
@@ -54,7 +57,8 @@ namespace API_WEB_SAE_6.Controllers
         ///           "fecha_vigencia": "2024-08-01T15:42:11.205Z",
         ///           "prioridad": 0,
         ///           "no_dar_baja": true,
-        ///           "visualizaciones": 0
+        ///           "visualizaciones": 0,
+        ///           "documentos_asociados" "1,documentoPrueba-2,documento2"
         ///         }
         ///     ]
         ///     
@@ -118,7 +122,8 @@ namespace API_WEB_SAE_6.Controllers
         ///           "fecha_vigencia": "2024-08-01T15:42:11.205Z",
         ///           "prioridad": 0,
         ///           "no_dar_baja": true,
-        ///           "visualizaciones": 0
+        ///           "visualizaciones": 0,
+        ///           "documentos_asociados" "1,documentoPrueba-2,documento2"
         ///         }
         ///     ]
         ///     
@@ -177,7 +182,8 @@ namespace API_WEB_SAE_6.Controllers
         ///       "fecha_vigencia": "2024-08-01T15:42:11.205Z",
         ///       "prioridad": 0,
         ///       "no_dar_baja": true,
-        ///       "visualizaciones": 0
+        ///       "visualizaciones": 0,
+        ///       "documentos_asociados" "1,documentoPrueba-2,documento2"
         ///     }  
         /// </remarks>
         /// <response code="200" >Devuelve una publicacion con este ID </response>
@@ -314,13 +320,31 @@ namespace API_WEB_SAE_6.Controllers
         {
             try
             {
-                DocumentosPrensa? docu = PressAdapter.ObtenerDocumentoXId(id);
-                if (docu == null) return Conflict();
-                if (docu.id == -1 || docu.datos_documento == null) return NoContent();
-                else return Ok(docu);
-                //string path = @"C:\Users\grber\Downloads\" + documentos.nombre_documento;
-                //// Write/Export File content into new text file
-                //System.IO.File.WriteAllBytes(path, documentos.datos_documento);
+                DocumentosPrensa? doc = PressAdapter.ObtenerDocumentoXId(id);
+                if (doc != null && doc.id != -1 && doc.libre_consumo)
+                {
+                    SettingsReader set = SettingsReader.GetAppSettings();
+                    string uploadsPath = set.GetFilesLocation();
+                    if (uploadsPath != "ERROR")
+                    {
+                        string filePath = Path.Combine(uploadsPath, doc.ruta);
+                        //Verifica si existe el archivo
+                        FileInfo fileInfo = new(filePath);
+
+                        if (fileInfo.Exists)
+                        {
+                            FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read); ;
+                            FileExtensionContentTypeProvider provider = new();
+                            //Se asegura que puedas descargar el archivo despues
+                            if (!provider.TryGetContentType(filePath, out string? contentType))
+                                contentType = "application/octet-stream"; // fallback
+                            return File(stream, contentType, doc.nombre_documento);
+                        }
+                        else return NotFound();
+                    }
+                    else return Conflict("Sistema de Archivos no encontrado");
+                }
+                else return NotFound();
             }
             catch (Exception ex)
             {
@@ -507,7 +531,7 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<string> ModificarDocumento(int id,int idTipoDocumento,[FromBody] IFormFile documento)
+        public async Task<ActionResult<string>> ModificarDocumento(int id,int idTipoDocumento,[FromBody] IFormFile documento)
         {
             try
             {
@@ -523,27 +547,35 @@ namespace API_WEB_SAE_6.Controllers
                         if (documento.Length < 50000000)
                         {
                             string usuarioActual = userData.Split(',')[2];
-                            byte[] fileBytes = new byte[documento.Length];
 
-                            //crea un memory stream con los datos del documento
-                            using (var ms = new MemoryStream())
+                            DocumentosPrensa? doc = PressAdapter.ObtenerDocumentoXId(id);
+                            if(doc != null && doc.id != -1)
                             {
-                                documento.CopyTo(ms);
-                                fileBytes = ms.ToArray();
+                                SettingsReader set = SettingsReader.GetAppSettings();
+                                string uploadsPath = set.GetFilesLocation();
+                                if (uploadsPath != "ERROR")
+                                {
+                                    string filePath = Path.Combine(uploadsPath, doc.ruta);
+                                    //Verifica si existe el archivo
+                                    FileInfo fileInfo = new(filePath);
+
+                                    if (fileInfo.Exists)
+                                    {
+                                        using var stream = new FileStream(filePath, FileMode.Create);
+                                        await documento.CopyToAsync(stream);
+
+                                        //Lo unico que cambia es el tamaño
+                                        doc.tamanio = documento.Length;
+                                        doc = PressAdapter.ModificarDocumento(doc, idUserMod);
+
+                                        if (doc.id != -1) return Ok("Modificacion Correcta");
+                                        else return Conflict("Archivo no Modificado");
+                                    }
+                                    else return NotFound();
+                                }
+                                else return Conflict("Sistema de Archivos no encontrado");
                             }
-
-                            DocumentosPrensa doc = new()
-                            {
-                                id = id,
-                                id_tipo_documento = 0,//Tengo que ver que hago con esto
-                                nombre_documento = documento.FileName,
-                                datos_documento = fileBytes
-                            };
-
-                            doc = PressAdapter.ModificarDocumento(doc, idUserMod);
-
-                            if (doc.id != .1) return Ok("Modificacion Correcta");
-                            else return Conflict();
+                            else return NotFound();
                         }
                         else return StatusCode(413, "El archivo no debe superar los 50Mb");
                     }
@@ -637,7 +669,7 @@ namespace API_WEB_SAE_6.Controllers
             }
         }
         /// <summary>
-        /// Permite crear un nuevo documento
+        /// Permite crear un nuevo documento que puede ser consumido por CUALQUIERA sin necesidad de TOKEN
         /// </summary>
         /// <param name="archivo">El archivo que deseamos almacenar en la BD</param>
         /// <returns>Una inscripcion creada en la base de datos o error</returns>
@@ -668,7 +700,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="413" >El archivo que se cargo supero los 50Mb </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpPost]
-        [ActionName("CrearDocumentoPrensa")]
+        [ActionName("CrearDocumentoPrensaLibre")]
         [Authorize]
         [ProducesResponseType(typeof(string), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -677,7 +709,116 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<string> CrearDocumentoPrensa(IFormFile archivo)
+        public async Task<ActionResult<string>> CrearDocumentoPrensaLibre(IFormFile archivo)
+        {
+            try
+            {
+                if (true || TienePermiso(148))
+                {
+                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        //Que no supere 50Mb
+                        if (archivo.Length < 50000000)
+                        {
+                            string usuarioActual = userData.Split(',')[2];
+                            SettingsReader set = SettingsReader.GetAppSettings();
+                            string uploadsPath = set.GetFilesLocation();
+                            if (uploadsPath != "ERROR")
+                            {
+                                uploadsPath = Path.Combine(uploadsPath, "Prensa","Publico");
+
+                                // crear carpeta si no existe
+                                if (!Directory.Exists(uploadsPath))
+                                    Directory.CreateDirectory(uploadsPath);
+
+                                // nombre único
+                                var fileName = $"{Guid.NewGuid()}_{archivo.FileName}";
+                                var filePath = Path.Combine(uploadsPath, fileName);
+
+                                // guardar archivo
+                                using var stream = new FileStream(filePath, FileMode.Create);
+                                await archivo.CopyToAsync(stream);
+
+                                DocumentosPrensa doc = new()
+                                {
+                                    id = -1,
+                                    id_tipo_documento = 0,//Tengo que ver que hago con esto
+                                    nombre_documento = archivo.FileName,
+                                    ruta = Path.Combine("Prensa", "Publico", fileName),//Es una ruta relativa desde el origen del sistema de archivos
+                                    tamanio = archivo.Length
+                                };
+
+                                doc = PressAdapter.CrearDocumento(doc, idUserMod);
+
+                                if (doc.id != -1) return Ok("Creacion Correcta");
+                                else
+                                {
+                                    //Sino cargo la referencia en la base lo elimina
+                                    FileInfo fileInfo = new(filePath);
+                                    fileInfo.Delete();
+                                    return Conflict();
+                                }
+                            }
+                            else return Conflict("Sistema de Archivos no encontrado");
+                        }
+                        else return StatusCode(413, "El archivo no debe superar los 50Mb");
+                    }
+                    else return Unauthorized();                              
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Permite crear un nuevo documento que puede ser consumido unicamente de manera interna
+        /// </summary>
+        /// <param name="archivo">El archivo que deseamos almacenar en la BD</param>
+        /// <returns>Una inscripcion creada en la base de datos o error</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     POST /api/Prensa/CrearDocumentoPrensa
+        ///     BODY:
+        ///     Un archivo de los tipos permitidos
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///       "id": 0,
+        ///       "id_tipo_documento": 0,
+        ///       "nombre_documento": "string",
+        ///       "datos_documento": byte[],
+        ///       "extension": "string"
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="201" >Devuelve el documento creado en la BD </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="413" >El archivo que se cargo supero los 50Mb </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpPost]
+        [ActionName("CrearDocumentoPrensaInterno")]
+        [Authorize]
+        [ProducesResponseType(typeof(string), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<string>> CrearDocumentoPrensaInterno(IFormFile archivo)
         {
             try
             {
@@ -693,31 +834,49 @@ namespace API_WEB_SAE_6.Controllers
                         if (archivo.Length < 50000000)
                         {
                             string usuarioActual = userData.Split(',')[2];
-                            byte[] fileBytes = new byte[archivo.Length];
-
-                            //crea un memory stream con los datos del documento
-                            using (var ms = new MemoryStream())
+                            SettingsReader set = SettingsReader.GetAppSettings();
+                            string uploadsPath = set.GetFilesLocation();
+                            if (uploadsPath != "ERROR")
                             {
-                                archivo.CopyTo(ms);
-                                fileBytes = ms.ToArray();
+                                uploadsPath = Path.Combine(uploadsPath, "Prensa", "Interno");
+
+                                // crear carpeta si no existe
+                                if (!Directory.Exists(uploadsPath))
+                                    Directory.CreateDirectory(uploadsPath);
+
+                                // nombre único
+                                var fileName = $"{Guid.NewGuid()}_{archivo.FileName}";
+                                var filePath = Path.Combine(uploadsPath, fileName);
+
+                                // guardar archivo
+                                using var stream = new FileStream(filePath, FileMode.Create);
+                                await archivo.CopyToAsync(stream);
+
+                                DocumentosPrensa doc = new()
+                                {
+                                    id = -1,
+                                    id_tipo_documento = 0,//Tengo que ver que hago con esto
+                                    nombre_documento = archivo.FileName,
+                                    ruta = Path.Combine("Prensa", fileName),//Es una ruta relativa desde el origen del sistema de archivos
+                                    tamanio = archivo.Length,
+                                };
+
+                                doc = PressAdapter.CrearDocumento(doc, idUserMod);
+
+                                if (doc.id != -1) return Ok("Creacion Correcta");
+                                else
+                                {
+                                    //Sino cargo la referencia en la base lo elimina
+                                    FileInfo fileInfo = new(filePath);
+                                    fileInfo.Delete();
+                                    return Conflict();
+                                }
                             }
-
-                            DocumentosPrensa doc = new()
-                            {
-                                id = -1,
-                                id_tipo_documento = 0,//Tengo que ver que hago con esto
-                                nombre_documento = archivo.FileName,
-                                datos_documento = fileBytes
-                            };
-
-                            doc = PressAdapter.CrearDocumento(doc, idUserMod);
-
-                            if (doc.id != .1) return Ok("Creacion Correcta");
-                            else return Conflict();
+                            else return Conflict("Sistema de Archivos no encontrado");
                         }
                         else return StatusCode(413, "El archivo no debe superar los 50Mb");
                     }
-                    else return Unauthorized();                              
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
@@ -939,8 +1098,28 @@ namespace API_WEB_SAE_6.Controllers
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        if (PressAdapter.EliminarDocumento(id_documento)) return Ok("Documento Eliminado");
-                        else return Conflict();
+                        DocumentosPrensa? doc = PressAdapter.ObtenerDocumentoXId(id_documento);
+                        if (doc != null && doc.id != -1)
+                        {
+                            SettingsReader set = SettingsReader.GetAppSettings();
+                            string uploadsPath = set.GetFilesLocation();
+                            if (uploadsPath != "ERROR")
+                            {
+                                string filePath = Path.Combine(uploadsPath, doc.ruta);
+                                //Verifica si existe el archivo
+                                FileInfo fileInfo = new(filePath);
+
+                                if (fileInfo.Exists)
+                                {
+                                    fileInfo.Delete();
+                                    if (PressAdapter.EliminarDocumento(id_documento)) return Ok("Documento Eliminado");
+                                    else return Conflict("Se elimino el archivo del sistema de archivos pero no su registro en BD");
+                                }
+                                else return NotFound();
+                            }
+                            else return Conflict("Sistema de Archivos no encontrado");
+                        }
+                        else return NotFound();
                     }
                 }
                 else return Forbid();

@@ -268,7 +268,8 @@ namespace API_WEB_SAE_6.Adapters
                         new("i_id_doc", MySqlDbType.Int32) { Value = docus.id},
                         new("i_id_tipo", MySqlDbType.Int32) { Value = docus.id_tipo_documento},
                         new("i_nombre", MySqlDbType.VarChar) { Value = docus.nombre_documento},
-                        new("i_datos", MySqlDbType.VarBinary) { Value = docus.datos_documento},
+                        new("i_tamanio", MySqlDbType.Int32) { Value = docus.tamanio},
+                        new("i_ruta", MySqlDbType.VarChar) { Value = docus.ruta},
                         new("i_id_usuario_mod", MySqlDbType.Int32) { Value = usuarioActual}];
                     GeneralAdapterMySQL consult = new();
                     DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_PRENSA_Modificar_Documento_Prensa", parameters);
@@ -333,8 +334,9 @@ namespace API_WEB_SAE_6.Adapters
                     List<MySqlParameter> parameters = [
                         new("i_id_tipo", MySqlDbType.Int32) { Value = docus.id_tipo_documento},
                         new("i_nombre", MySqlDbType.VarChar) { Value = docus.nombre_documento},
-                        new("i_datos", MySqlDbType.VarBinary) { Value = docus.datos_documento},
-                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idCreacion}];
+                        new("i_tamanio", MySqlDbType.Int32) { Value = docus.tamanio},
+                        new("i_ruta", MySqlDbType.VarChar) { Value = docus.ruta},
+                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idCreacion}];
                     GeneralAdapterMySQL consult = new();
                     DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_PRENSA_Crear_Documento_Prensa", parameters);
                     if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();

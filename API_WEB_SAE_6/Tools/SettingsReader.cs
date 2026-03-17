@@ -25,6 +25,10 @@ namespace API_WEB_SAE_6.Tools
         /// </summary>
         public string SecretKey { get; set; } = "";
         /// <summary>
+        /// Para almacenar archivos vamos a utilizar otra direccion para recuperalos
+        /// </summary>
+        public Dictionary<string, string> FilesLocation { get; set; } = [];
+        /// <summary>
         /// Las conexiones para los esquemas basados en MySQL
         /// </summary>
         public Dictionary<string, string> ConexionesMySQL { get; set; } = [];
@@ -62,6 +66,17 @@ namespace API_WEB_SAE_6.Tools
                     if (ConexionesMySQL.TryGetValue(Enviroment, out value)) return value;
                     else return "ERROR";
             }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public string GetFilesLocation()
+        {
+            //Al principio quise resolver todo haciendo un diccionario de diccionarios pero JSON no estaba
+            //cooperando asi que hice un atributo por cada esquema que es su propio esquema de conexiones.
+            if (FilesLocation.TryGetValue(Enviroment, out string? value)) return value;
+            else return "ERROR";
 
         }
         /// <summary>
