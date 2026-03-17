@@ -713,7 +713,7 @@ namespace API_WEB_SAE_6.Controllers
         {
             try
             {
-                if (true || TienePermiso(148))
+                if (TienePermiso(148))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData != null &&
