@@ -702,7 +702,7 @@ namespace API_WEB_SAE_6.Controllers
         [HttpPost]
         [ActionName("CrearDocumentoPrensaLibre")]
         [Authorize]
-        [ProducesResponseType(typeof(string), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(DocumentosPrensa), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
