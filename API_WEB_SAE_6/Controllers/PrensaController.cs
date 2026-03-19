@@ -568,7 +568,7 @@ namespace API_WEB_SAE_6.Controllers
                                         doc.tamanio = documento.Length;
                                         doc = PressAdapter.ModificarDocumento(doc, idUserMod);
 
-                                        if (doc.id != -1) return Ok("Modificacion Correcta");
+                                        if (doc.id != -1) return Ok(doc);
                                         else return Conflict("Archivo no Modificado");
                                     }
                                     else return NotFound();
@@ -754,7 +754,7 @@ namespace API_WEB_SAE_6.Controllers
 
                                 doc = PressAdapter.CrearDocumento(doc, idUserMod);
 
-                                if (doc.id != -1) return Ok("Creacion Correcta");
+                                if (doc.id != -1) return Ok(doc);
                                 else
                                 {
                                     //Sino cargo la referencia en la base lo elimina
@@ -863,7 +863,7 @@ namespace API_WEB_SAE_6.Controllers
 
                                 doc = PressAdapter.CrearDocumento(doc, idUserMod);
 
-                                if (doc.id != -1) return Ok("Creacion Correcta");
+                                if (doc.id != -1) return Ok(doc);
                                 else
                                 {
                                     //Sino cargo la referencia en la base lo elimina
