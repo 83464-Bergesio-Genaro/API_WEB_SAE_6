@@ -248,8 +248,8 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="403" >Su perfil no cuenta con este permiso</response>        
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpGet]
         [Authorize]
+        [HttpGet]
         [ActionName("ListarDocumentosSinData")]
         [ProducesResponseType(typeof(IEnumerable<DocumentosPrensa>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -272,6 +272,80 @@ namespace API_WEB_SAE_6.Controllers
                     return Ok(listadoPubli);
                 }
                 else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Descarga el documento INTERNO por su ID
+        /// </summary>
+        /// <returns>Un documento para visualizar en el front</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Prensa/DescargarDocumentoXId/{id}
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///       "id": 0,
+        ///       "id_tipo_documento": 0,
+        ///       "nombre_documento": "string",
+        ///       "datos_documento": "string",
+        ///       "extension": "string",
+        ///       "id_vinculacion": null (Este atributo solo lo recupera si lo buscamos por publicacion)
+        ///     }  
+        /// </remarks>
+        /// <response code="200" >Devuelve un documento para su visualizacion o descarga </response>
+        /// <response code="204" >No se encontro ningun documento con este ID </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>        
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [Authorize]
+        [HttpGet("{id}")]
+        [ActionName("DescargarDocumentoInternoXId")]
+        [ProducesResponseType(typeof(DocumentosPrensa), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<DocumentosPrensa> DescargarDocumentoInternoXId(int id)
+        {
+            try
+            {
+                DocumentosPrensa? doc = PressAdapter.ObtenerDocumentoXId(id);
+                if (doc != null && doc.id != -1 && doc.libre_consumo)
+                {
+                    SettingsReader set = SettingsReader.GetAppSettings();
+                    string uploadsPath = set.GetFilesLocation();
+                    if (uploadsPath != "ERROR")
+                    {
+                        string filePath = Path.Combine(uploadsPath, doc.ruta);
+                        //Verifica si existe el archivo
+                        FileInfo fileInfo = new(filePath);
+
+                        if (fileInfo.Exists)
+                        {
+                            FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read); ;
+                            FileExtensionContentTypeProvider provider = new();
+                            //Se asegura que puedas descargar el archivo despues
+                            if (!provider.TryGetContentType(filePath, out string? contentType))
+                                contentType = "application/octet-stream"; // fallback
+                            return File(stream, contentType, doc.nombre_documento);
+                        }
+                        else return NotFound();
+                    }
+                    else return Conflict("Sistema de Archivos no encontrado");
+                }
+                else return NotFound();
             }
             catch (Exception ex)
             {

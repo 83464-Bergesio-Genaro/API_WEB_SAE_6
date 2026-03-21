@@ -2,21 +2,26 @@
 
 namespace API_WEB_SAE_6.Models
 {
+    /// <summary></summary>
     public class ServiciosInternosFacultad
     {
-        public int id { get; set; }
-        public string nombre { get; set; }
-        public int nro_telefono { get; set; }
-        public int nro_interno_telefono { get; set; }
-        public string horario_atencion { get; set; }
-        public string horario_atencion_real { get; set; }
-        public string email_institucional { get; set; }
-
-        public ServiciosInternosFacultad()
-        {
-
-        }
-
+        /// <summary></summary>
+        public int id { get; set; } = -1;
+        /// <summary></summary>
+        public string nombre { get; set; } = "";
+        /// <summary></summary>
+        public int nro_telefono { get; set; } = -1;
+        /// <summary></summary>
+        public int nro_interno_telefono { get; set; } = -1;
+        /// <summary></summary>
+        public string horario_atencion { get; set; } = "";
+        /// <summary></summary>
+        public string horario_atencion_real { get; set; } = "";
+        /// <summary></summary>
+        public string email_institucional { get; set; } = "";
+        /// <summary></summary>
+        public ServiciosInternosFacultad() { }
+        /// <summary></summary>
         public ServiciosInternosFacultad(DataRow data)
         {
             id = int.Parse(data["id_servicio"].ToString() ?? "0");

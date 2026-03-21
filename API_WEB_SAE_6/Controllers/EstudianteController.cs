@@ -1,11 +1,11 @@
 ﻿using API_WEB_SAE_6.Adapters;
 using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models;
+using API_WEB_SAE_6.Tools;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using System.Data;
-using System.Diagnostics.Eventing.Reader;
+using Microsoft.AspNetCore.StaticFiles;
 using System.Security.Claims;
 
 namespace API_WEB_SAE_6.Controllers
@@ -30,7 +30,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <summary>
         /// 
         /// </summary>
-        private readonly string ControllerName = "EstudianteAdapter";
+        private readonly string ControllerName = "EstudianteController";
         /// <summary>
         /// 
         /// </summary>
@@ -83,15 +83,31 @@ namespace API_WEB_SAE_6.Controllers
 
                 if (userData != null && userData != "NO DATA" && TienePermiso(154))
                 {
-                    string legajoRegistrado = userData.Split(',')[0];
-                    DocumentosEstudiante? documento = EstudianteAdapter.BuscarDocumentoXId(id);
-                    
-                    if(documento != null && legajoRegistrado == documento.legajo) return Ok(documento);
-                    else
+                    DocumentosEstudiante? doc = EstudianteAdapter.BuscarDocumentoXId(id);
+                    if (doc != null && doc.id != -1)
                     {
-                        Logger.RegistrarDatos(Logger.LogOptions.Alerta, "DescargarDocumentacionXId", "Intento descargar documentacion que no era suya conociendo el ID del mismo. HOST:"+ HttpContext.Request.Host.Value, ControllerName);
-                        return Forbid();
+                        SettingsReader set = SettingsReader.GetAppSettings();
+                        string uploadsPath = set.GetFilesLocation();
+                        if (uploadsPath != "ERROR")
+                        {
+                            string filePath = Path.Combine(uploadsPath, doc.ruta);
+                            //Verifica si existe el archivo
+                            FileInfo fileInfo = new(filePath);
+
+                            if (fileInfo.Exists)
+                            {
+                                FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read); ;
+                                FileExtensionContentTypeProvider provider = new();
+                                //Se asegura que puedas descargar el archivo despues
+                                if (!provider.TryGetContentType(filePath, out string? contentType))
+                                    contentType = "application/octet-stream"; // fallback
+                                return File(stream, contentType, doc.nombre_documento);
+                            }
+                            else return NotFound();
+                        }
+                        else return Conflict("Sistema de Archivos no encontrado");
                     }
+                    else return NotFound();
                 }
                 else return Unauthorized();
             }
@@ -218,25 +234,52 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<DocumentosEstudiante> ModificarDocumento(int id, DocumentosEstudiante documento)
+        public async Task<ActionResult<DocumentosEstudiante>> ModificarDocumento(int id, [FromBody] IFormFile documento)
         {
             try
             {
-                //No manda datos en el archivo
-                if (id != documento.id || documento.datos_documento == null) return BadRequest();
-
-                //Busca los datos guardados de la claim para verigicar todo
+                //Busca los datos guardados de la claim para verificar todo
                 string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
 
                 if (userData != null && userData != "NO DATA" && TienePermiso(154))
                 {
-                    if (documento.datos_documento?.Length < 50000000)
+                    //Que no supere 50Mb
+                    if (documento.Length < 50000000)
                     {
-                        string legajoRegistrado = userData.Split(',')[0];
-                        string usuarioActual = userData.Split(',')[2];
-                        documento=EstudianteAdapter.ModificarDocumento(documento, usuarioActual);
-                        if (documento.id != -1) return Ok(documento);
-                        else return Conflict();
+                        string legajo = userData.Split(",")[0];
+                        string idUserMod = userData.Split(',')[2];
+                        List<DocumentosEstudiante>? docs = EstudianteAdapter.BuscarDocumentosXLegajo(legajo);
+                        
+                        if (docs != null && docs.Count > 0)
+                        {
+                            //Que busque entre los documentos de esta persona que el legajo esto este existe. Es decir esta asignado a esta persona
+                            DocumentosEstudiante? doc = docs.Find(x => x.legajo == legajo);
+                            SettingsReader set = SettingsReader.GetAppSettings();
+                            string uploadsPath = set.GetFilesLocation();
+                            
+                            if (uploadsPath != "ERROR" && doc != null)
+                            {
+                                string filePath = Path.Combine(uploadsPath, doc.ruta);
+                                //Verifica si existe el archivo
+                                FileInfo fileInfo = new(filePath);
+
+                                if (fileInfo.Exists)
+                                {
+                                    using var stream = new FileStream(filePath, FileMode.Create);
+                                    await documento.CopyToAsync(stream);
+
+                                    //Lo unico que cambia es el tamaño
+                                    doc.tamanio = documento.Length;
+                                    doc = EstudianteAdapter.ModificarDocumento(doc, idUserMod);
+
+                                    if (doc.id != -1) return Ok(doc);
+                                    else return Conflict("Archivo no Modificado");
+                                }
+                                else return NotFound();
+                            }
+                            else return Conflict("Sistema de Archivos no encontrado");
+                        }
+                        else return NotFound();
                     }
                     else return StatusCode(413, "El archivo no debe superar los 50Mb");
                 }
@@ -251,7 +294,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <summary>
         /// Permite crear un nuevo documento
         /// </summary>
-        /// <param name="documento">El archivo que deseamos almacenar en la BD</param>
+        /// <param name="archivo">El archivo que deseamos almacenar en la BD</param>
         /// <returns>Una inscripcion creada en la base de datos o error</returns>
         /// <remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
@@ -297,24 +340,60 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<DocumentosEstudiante> CrearDocumentoEstudiante(DocumentosEstudiante documento)
+        public async Task <ActionResult<DocumentosEstudiante>> CrearDocumentoEstudiante(IFormFile archivo)
         {
             try
             {
-                //No manda datos en el archivo
-                if (documento.datos_documento == null) return BadRequest();
-
                 string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                if(userData != null && userData != "NO DATA" &&
-                    documento.legajo == userData.Split(',')[0] &&
-                    TienePermiso(151))
+                if (userData != null &&
+                   userData.Length > 0 &&
+                   userData != "NO DATA" &&
+                   int.TryParse(userData.Split(',')[2], out int idUserMod) &&
+                   TienePermiso(151))
                 {
-                    if (documento.datos_documento?.Length < 50000000)
+                    string legajo = userData.Split(",")[0];
+                    if (archivo.Length < 50000000)
                     {
                         string usuarioActual = userData.Split(',')[2];
-                        documento = EstudianteAdapter.CrearDocumento(documento, usuarioActual);
-                        if (documento.id != -1) return Ok(documento);
-                        else return Conflict();
+                        SettingsReader set = SettingsReader.GetAppSettings();
+                        string uploadsPath = set.GetFilesLocation();
+                        if (uploadsPath != "ERROR")
+                        {
+                            uploadsPath = Path.Combine(uploadsPath, "Estudiantes", legajo);
+
+                            // crear carpeta si no existe
+                            if (!Directory.Exists(uploadsPath))
+                                Directory.CreateDirectory(uploadsPath);
+
+                            // nombre único
+                            var fileName = $"{Guid.NewGuid()}_{archivo.FileName}";
+                            var filePath = Path.Combine(uploadsPath, fileName);
+
+                            // guardar archivo
+                            using var stream = new FileStream(filePath, FileMode.Create);
+                            await archivo.CopyToAsync(stream);
+
+                            DocumentosEstudiante doc = new()
+                            {
+                                id = -1,
+                                id_tipo_documento = 0,//Tengo que ver que hago con esto
+                                nombre_documento = archivo.FileName,
+                                ruta = Path.Combine("Estudiantes", legajo, fileName),//Es una ruta relativa desde el origen del sistema de archivos
+                                tamanio = archivo.Length
+                            };
+
+                            doc = EstudianteAdapter.CrearDocumento(doc, idUserMod);
+
+                            if (doc.id != -1) return Ok(doc);
+                            else
+                            {
+                                //Sino cargo la referencia en la base lo elimina
+                                FileInfo fileInfo = new(filePath);
+                                fileInfo.Delete();
+                                return Conflict();
+                            }
+                        }
+                        else return Conflict("Sistema de Archivos no encontrado");
                     }
                     else return StatusCode(413, "El archivo no debe superar los 50Mb");
                 }
@@ -322,7 +401,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error,this.Request.Path, ex.Message, ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -364,8 +443,33 @@ namespace API_WEB_SAE_6.Controllers
             {
                 if (TienePermiso(153))
                 {
-                    if (EstudianteAdapter.EliminarDocumento(id_documento)) return Ok("Documento Eliminado.");
-                    else return Conflict();
+                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+                    if (userData == null || userData == "NO DATA") return Unauthorized();
+                    else
+                    {
+                        DocumentosEstudiante? doc = EstudianteAdapter.BuscarDocumentoXId(id_documento);
+                        if (doc != null && doc.id != -1)
+                        {
+                            SettingsReader set = SettingsReader.GetAppSettings();
+                            string uploadsPath = set.GetFilesLocation();
+                            if (uploadsPath != "ERROR")
+                            {
+                                string filePath = Path.Combine(uploadsPath, doc.ruta);
+                                //Verifica si existe el archivo
+                                FileInfo fileInfo = new(filePath);
+
+                                if (fileInfo.Exists)
+                                {
+                                    fileInfo.Delete();
+                                    if (EstudianteAdapter.EliminarDocumento(id_documento)) return Ok("Documento Eliminado");
+                                    else return Conflict("Se elimino el archivo del sistema de archivos pero no su registro en BD");
+                                }
+                                else return NotFound();
+                            }
+                            else return Conflict("Sistema de Archivos no encontrado");
+                        }
+                        else return NotFound();
+                    }
                 }
                 else return Unauthorized();
             }

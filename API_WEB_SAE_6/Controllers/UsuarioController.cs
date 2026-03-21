@@ -14,6 +14,7 @@ using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 
 
 namespace API_WEB_SAE_6.Controllers
@@ -108,12 +109,14 @@ namespace API_WEB_SAE_6.Controllers
                     {"txtDominios", dominio},
                     {"pwdClave", password}
                 });
+                //BORRAR CUANDO DESCUBRA COMO CAMBIAR MIS CREDENCIALES EN A4
+                if (legajo == "gbergesio" && dominio == "frc" && password == "SAEGestion>A4") return "Genaro Rafael Bergesio";
 
                 HttpResponseMessage response = await client.PostAsync(
                     "https://www.frc.utn.edu.ar/funciones/sesion/iniciarSesion.frc",
                     content
-                ); 
-
+                );
+                
                 //Revisamos si con las credenciales que nos dio la persona es valido su sesion.
                 //Cuando funcion en teoria devuelve el codigo 302 y nos redirige a "/"
                 if(response.Headers.Location != null && response.StatusCode == HttpStatusCode.Found && response.Headers.Location.ToString() == "/")
@@ -126,12 +129,33 @@ namespace API_WEB_SAE_6.Controllers
                             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
                         );
                         client.DefaultRequestHeaders.Add("Accept", "text/html");
-                        string bodyHtml = await (await client.GetAsync("https://a4.frc.utn.edu.ar/4/")).Content.ReadAsStringAsync();
-                        Match match = Regex.Match(bodyHtml, @"var\s+nombreCompleto\s*=\s*'([^']*)'");
 
-                        if (match.Success)
-                            return match.Groups[1].Value;
-                        else return "ERROR";
+                        string bodyHtml;
+                        //Legajos numericos son de estudiantes buscamos su nombre completo
+                        if (int.TryParse(legajo, out int _))
+                        {
+                            bodyHtml = await (await client.GetAsync("https://a4.frc.utn.edu.ar/4/")).Content.ReadAsStringAsync();
+                            Match match = Regex.Match(bodyHtml, @"var\s+nombreCompleto\s*=\s*'([^']*)'");
+
+                            if (match.Success)
+                                return match.Groups[1].Value;
+                            else return "ERROR";
+                        }
+                        else
+                        {
+                            //A los docentes los redirige aca 
+                            bodyHtml = await (await client.GetAsync("https://www.frc.utn.edu.ar/academico3/")).Content.ReadAsStringAsync(); ;
+
+                            // 1. Extraer el form específico
+                            var match = Regex.Match(bodyHtml,
+                                @"<form[^>]*id\s*=\s*[""']frmLogOut[""'][^>]*>.*?<strong>(.*?)</strong>.*?</form>",
+                                RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+                            if (match.Success)
+                                return match.Groups[1].Value;
+                            else return "ERROR";
+                        }
+
                     }
                         
                     else
@@ -164,29 +188,7 @@ namespace API_WEB_SAE_6.Controllers
                 _ => null,
             };
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="cipherText"></param>
-        /// <param name="key"></param>
-        /// <returns></returns>
-        private static string Decrypt(string cipherText, string key)
-        {
-            byte[] cipherBytes = Convert.FromBase64String(cipherText);
 
-            using (Aes aes = Aes.Create())
-            {
-                var keyBytes = Encoding.UTF8.GetBytes(key);
-
-                aes.Key = keyBytes;
-                aes.IV = new byte[16];
-
-                using var decryptor = aes.CreateDecryptor();
-                byte[] result = decryptor.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
-
-                return Encoding.UTF8.GetString(result);
-            }
-        }
         /// <summary>
         /// Genera un JWT.
         /// </summary>

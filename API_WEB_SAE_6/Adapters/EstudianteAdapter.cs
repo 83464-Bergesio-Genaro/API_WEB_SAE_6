@@ -99,7 +99,8 @@ namespace API_WEB_SAE_6.Adapters
                     new("i_legajo", MySqlDbType.VarChar) { Value = documento.legajo },
                     new("i_id_tipo", MySqlDbType.Int32) { Value = documento.id_tipo_documento },
                     new("i_nombre", MySqlDbType.VarChar) { Value = documento.nombre_documento },
-                    new("i_datos", MySqlDbType.VarBinary) { Value = documento.datos_documento },
+                    new("i_tamanio", MySqlDbType.Int32) { Value = documento.tamanio },
+                    new("i_ruta", MySqlDbType.VarChar) { Value = documento.ruta },
                     new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idMod}];
 
                     GeneralAdapterMySQL consultor = new();
@@ -120,7 +121,7 @@ namespace API_WEB_SAE_6.Adapters
         /// 
         /// </summary>
         /// <returns></returns>
-        public DocumentosEstudiante CrearDocumento(DocumentosEstudiante documento, string idCrea)
+        public DocumentosEstudiante CrearDocumento(DocumentosEstudiante documento, int idCrea)
         {
             try
             {
@@ -132,7 +133,8 @@ namespace API_WEB_SAE_6.Adapters
                     new("i_legajo", MySqlDbType.VarChar) { Value = documento.legajo },
                     new("i_id_tipo", MySqlDbType.Int32) { Value = documento.id_tipo_documento },
                     new("i_nombre", MySqlDbType.VarChar) { Value = documento.nombre_documento },
-                    new("i_datos", MySqlDbType.VarBinary) { Value = documento.datos_documento },
+                    new("i_tamanio", MySqlDbType.Int32) { Value = documento.tamanio },
+                    new("i_ruta", MySqlDbType.VarChar) { Value = documento.ruta },
                     new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idCrea}];
 
                     GeneralAdapterMySQL consultor = new();
