@@ -24,10 +24,6 @@ namespace API_WEB_SAE_6.Models
         public string ruta { get; set; } = "";
         /// <summary></summary>
         public string extension { get; set; } = "";
-        /// <summary>
-        /// Propiedad que representa el id de vinculacion del documento de prensa, esta propiedad es de tipo entero y es una clave foranea que hace referencia a la tabla de vinculaciones en la base de datos, esta propiedad puede ser nula si no se encuentran datos en la base de datos o si ocurre un error al obtener el id de vinculacion del documento, si ocurre un error al obtener el id de vinculacion del documento se asigna el valor null a esta propiedad.
-        /// </summary>
-        public int? id_vinculacion { get; set; }
 
         /// <summary></summary>
         public DocumentosEstudiante()
@@ -43,7 +39,7 @@ namespace API_WEB_SAE_6.Models
             tamanio = int.Parse(data["tamanio"].ToString() ?? "0");
             ruta = data["ruta"].ToString() ?? "";
             extension = data["extension"].ToString() ?? "";
-            id_vinculacion = data["id_vinculacion"] == null || data["id_vinculacion"].ToString() == "" ? null : int.Parse(data["id_vinculacion"].ToString() ?? "0");
+            //id_vinculacion = data["id_vinculacion"] == null || data["id_vinculacion"].ToString() == "" ? null : int.Parse(data["id_vinculacion"].ToString() ?? "0");
         }
     }
 }

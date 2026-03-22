@@ -84,8 +84,13 @@ namespace API_WEB_SAE_6.Controllers
                 if (userData != null && userData != "NO DATA" && TienePermiso(154))
                 {
                     DocumentosEstudiante? doc = EstudianteAdapter.BuscarDocumentoXId(id);
+
                     if (doc != null && doc.id != -1)
                     {
+                        string legajoRegistrado = userData.Split(',')[0];
+                        string idPerfil = userData.Split(',')[1];
+                        //Si es estudiante y su legajo no es el mismo del documento
+                        if (idPerfil == "1" &&  doc.legajo != legajoRegistrado) return BadRequest();
                         SettingsReader set = SettingsReader.GetAppSettings();
                         string uploadsPath = set.GetFilesLocation();
                         if (uploadsPath != "ERROR")
@@ -166,7 +171,8 @@ namespace API_WEB_SAE_6.Controllers
                 if (userData != null && userData != "NO DATA" && TienePermiso(154))
                 {
                     string legajoRegistrado = userData.Split(',')[0];
-                    List<DocumentosEstudiante>? documentos = EstudianteAdapter.BuscarDocumentosXLegajo(legajo);
+                    if(legajoRegistrado != legajo) return BadRequest();
+                    List<DocumentosEstudiante>? documentos = EstudianteAdapter.BuscarDocumentosXLegajo(legajoRegistrado);
 
                     if (documentos != null &&
                         documentos.Count > 0 &&
@@ -247,7 +253,6 @@ namespace API_WEB_SAE_6.Controllers
                     if (documento.Length < 50000000)
                     {
                         string legajo = userData.Split(",")[0];
-                        string idUserMod = userData.Split(',')[2];
                         List<DocumentosEstudiante>? docs = EstudianteAdapter.BuscarDocumentosXLegajo(legajo);
                         
                         if (docs != null && docs.Count > 0)
@@ -259,6 +264,9 @@ namespace API_WEB_SAE_6.Controllers
                             
                             if (uploadsPath != "ERROR" && doc != null)
                             {
+                                string idPerfil = userData.Split(",")[1];
+                                string idUserMod = userData.Split(',')[2];
+                                if (idPerfil == "1" && doc.legajo != legajo) return BadRequest();
                                 string filePath = Path.Combine(uploadsPath, doc.ruta);
                                 //Verifica si existe el archivo
                                 FileInfo fileInfo = new(filePath);
@@ -351,15 +359,15 @@ namespace API_WEB_SAE_6.Controllers
                    int.TryParse(userData.Split(',')[2], out int idUserMod) &&
                    TienePermiso(151))
                 {
-                    string legajo = userData.Split(",")[0];
                     if (archivo.Length < 50000000)
                     {
+                        string legajoActual = userData.Split(",")[0];
                         string usuarioActual = userData.Split(',')[2];
                         SettingsReader set = SettingsReader.GetAppSettings();
                         string uploadsPath = set.GetFilesLocation();
                         if (uploadsPath != "ERROR")
                         {
-                            uploadsPath = Path.Combine(uploadsPath, "Estudiantes", legajo);
+                            uploadsPath = Path.Combine(uploadsPath, "Estudiantes", legajoActual);
 
                             // crear carpeta si no existe
                             if (!Directory.Exists(uploadsPath))
@@ -378,7 +386,8 @@ namespace API_WEB_SAE_6.Controllers
                                 id = -1,
                                 id_tipo_documento = 0,//Tengo que ver que hago con esto
                                 nombre_documento = archivo.FileName,
-                                ruta = Path.Combine("Estudiantes", legajo, fileName),//Es una ruta relativa desde el origen del sistema de archivos
+                                legajo = legajoActual,
+                                ruta = Path.Combine("Estudiantes", legajoActual, fileName),//Es una ruta relativa desde el origen del sistema de archivos
                                 tamanio = archivo.Length
                             };
 
@@ -450,6 +459,9 @@ namespace API_WEB_SAE_6.Controllers
                         DocumentosEstudiante? doc = EstudianteAdapter.BuscarDocumentoXId(id_documento);
                         if (doc != null && doc.id != -1)
                         {
+                            string legajoActual = userData.Split(",")[0];
+                            string idPerfil = userData.Split(",")[1];
+                            if (idPerfil == "1" && doc.legajo != legajoActual) return BadRequest();
                             SettingsReader set = SettingsReader.GetAppSettings();
                             string uploadsPath = set.GetFilesLocation();
                             if (uploadsPath != "ERROR")
