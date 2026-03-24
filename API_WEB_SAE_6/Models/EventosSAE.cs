@@ -20,17 +20,20 @@ namespace API_WEB_SAE_6.Models
         /// <summary> </summary>
         public bool informacion_interna { get; set; } = false;
         /// <summary> </summary>
+        public string ubicacion { get; set; } = "";
+        /// <summary> </summary>
         public EventosSAE() { }
         /// <summary> </summary>
         public EventosSAE(DataRow data)
         {
-            id = int.Parse(data["id"].ToString() ?? "0");
+            id = int.Parse(data["id"].ToString() ?? "-1");
             fecha_evento = DateTime.Parse(data["fecha_evento"].ToString() ?? "00:00:00");
             horario_inicio = data["horario_inicio"].ToString() ?? "00:00:00";
             horario_fin = data["horario_fin"].ToString() ?? "00:00:00";
-            encargado = data["encargado"].ToString() ?? "NO DATA";
-            nombre_evento = data["nombre_evento"].ToString() ?? "NO DATA";
+            encargado = data["encargado"].ToString() ?? "";
+            nombre_evento = data["nombre_evento"].ToString() ?? "";
             informacion_interna = (data["informacion_interna"].ToString() == "1");
+            ubicacion = data["ubicacion"].ToString() ?? "";
         }
     }
 }

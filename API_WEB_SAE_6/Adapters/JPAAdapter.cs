@@ -118,20 +118,25 @@ namespace API_WEB_SAE_6.Adapters
         /// <returns></returns>
         public EventosSAE ModificarEventoSae(EventosSAE evento)
         {
-            //Inicializa un valor y le asigna el tipo
-            List<MySqlParameter> parameters = [
+            if (MotorDB == "MySQL")
+            {
+                //Inicializa un valor y le asigna el tipo
+                List<MySqlParameter> parameters = [
                     new("i_id_evento", MySqlDbType.Int32) { Value = evento.id },
                     new("i_fecha", MySqlDbType.VarChar) { Value = evento.fecha_evento.ToString("yyyy-MM-dd") },
                     new("i_hora_ini", MySqlDbType.VarChar) { Value = evento.horario_inicio },
                     new("i_hora_fin", MySqlDbType.VarChar) { Value = evento.horario_fin  },
                     new("i_encargado", MySqlDbType.VarChar) { Value = evento.encargado },
-                    new("i_nombre_evento", MySqlDbType.VarChar) { Value = evento.encargado },
-                    new("i_informacion_interna", MySqlDbType.Bit) { Value = evento.informacion_interna }
+                    new("i_nombre_evento", MySqlDbType.VarChar) { Value = evento.nombre_evento },
+                    new("i_informacion_interna", MySqlDbType.Bit) { Value = evento.informacion_interna },
+                    new("i_ubicacion", MySqlDbType.Text) { Value = evento.ubicacion }
                 ];
-            GeneralAdapterMySQL consult = new();
-            DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_JPA_Modificar_Evento", parameters);
-            if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
-            else return new(respuesta.Rows[0]);
+                GeneralAdapterMySQL consult = new();
+                DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_JPA_Modificar_Evento", parameters);
+                if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                else return new(respuesta.Rows[0]);
+            }
+            else return new();
         }
         /// <summary>
         /// 
@@ -147,7 +152,8 @@ namespace API_WEB_SAE_6.Adapters
                     new("i_hora_fin", MySqlDbType.VarChar) { Value = evento.horario_fin  },
                     new("i_encargado", MySqlDbType.VarChar) { Value = evento.encargado },
                     new("i_nombre_evento", MySqlDbType.VarChar) { Value = evento.encargado },
-                    new("i_informacion_interna", MySqlDbType.Bit) { Value = evento.informacion_interna }
+                    new("i_informacion_interna", MySqlDbType.Bit) { Value = evento.informacion_interna },
+                    new("i_ubicacion", MySqlDbType.Text) { Value = evento.ubicacion }
                 ];
             GeneralAdapterMySQL consult = new();
             DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_JPA_Crear_Evento", parameters);

@@ -135,7 +135,7 @@ namespace API_WEB_SAE_6.Controllers
                 //El numero de funcion es: 20
                 if (TienePermiso(20))
                 {
-                    List<Deportes>? listadoDeportes = DeportAdapter.ObtenerDeportesCompleto();
+                    List<Deportes>? listadoDeportes = DeportAdapter.ObtenerDeportesActivo();
 
                     if (listadoDeportes == null) return Conflict();
                     if (listadoDeportes.Count == 0) return NoContent();
