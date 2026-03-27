@@ -165,7 +165,7 @@ namespace API_WEB_SAE_6.Adapters
                 {
                     List<MySqlParameter> parameters = [new("i_id_doc", MySqlDbType.Int32) { Value = idDocumento }];
                     GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_ESTUDIANTE_Buscar_Documento_Id", parameters);
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_ESTUDIANTE_Eliminar_Documento_Estudiante", parameters);
                     if (respuesta.Rows.Count > 0)
                     {
                         if (respuesta.Rows[0][0].ToString() == "ERROR") Logger.RegistrarDatos(Logger.LogOptions.Error, "EliminarStand", "Imposible eliminar el interesado: " + idDocumento, "UsuarioAdapter");
