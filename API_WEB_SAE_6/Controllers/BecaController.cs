@@ -487,14 +487,14 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<BecariosSAE> ObtenerBecariosEconomicaXIdBecario(int id_becario)
+        public ActionResult<BecariosSAEEconomica> ObtenerBecariosEconomicaXIdBecario(int id_becario)
         {
             try
             {
                 //Este lo puede visualizar los becarios
                 if ( TienePermiso(53))
                 {
-                    BecariosSAE? becar = BecAdapter.BuscarBecarioEconomicaXID(id_becario);
+                    BecariosSAEEconomica? becar = BecAdapter.BuscarBecarioEconomicaXID(id_becario);
                     if (becar == null) return Conflict();
                     if (becar.id == -1) return NoContent();
                     else return Ok(becar);
@@ -507,6 +507,77 @@ namespace API_WEB_SAE_6.Controllers
                 return BadRequest();
             }
         }
+        /// <summary>
+        /// Busca becarios por ID becario
+        /// </summary>
+        /// <param name="legajo_estudiante">Es el legajo del estudiante en FRC</param>
+        /// <returns>Un becario encontrado por legajo</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Beca/ObtenerBecariosEconomicaXLegajo/{legajo_estudiante}
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///         "id": 0,
+        ///         "entrevista_realizada": true,
+        ///         "modulo_asignados": 0,
+        ///         "becario": 
+        ///         {
+        ///             "id": 0,
+        ///             "legajo": "string",
+        ///             "nombre_becario": "string",
+        ///             "alquila": true,
+        ///             "fecha_solicitud": "2024-07-21T14:50:52.102Z",
+        ///             "aceptado_inicio": true,
+        ///             "puede_pagarle": true,
+        ///             "activo": true,
+        ///             "anio_beca": 0,
+        ///             "id_becario_previo": 0
+        ///         }
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve un becario </response>
+        /// <response code="204" >No se encontro ningun becario </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet("{legajo_estudiante}")]
+        [ActionName("ObtenerBecariosEconomicaXLegajo")]
+        [ProducesResponseType(typeof(BecariosSAE), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<BecariosSAEEconomica> ObtenerBecariosEconomicaXLegajo(string legajo_estudiante)
+        {
+            try
+            {
+                //Este lo puede visualizar los becarios
+                if (TienePermiso(53))
+                {
+                    BecariosSAEEconomica? becar = BecAdapter.BuscarBecarioEconomicaXLegajo(legajo_estudiante);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+
+
         /// <summary>
         /// Recupera todos los becarios con modulos de investigacion
         /// </summary>
@@ -725,7 +796,82 @@ namespace API_WEB_SAE_6.Controllers
                 //Este lo puede visualizar los becarios
                 if ( TienePermiso(53))
                 {
-                    BecariosSAE? becar = BecAdapter.BuscarBecarioInvestigacionXID(id_becario);
+                    BecariosSAEInvestigacion? becar = BecAdapter.BuscarBecarioInvestigacionXID(id_becario);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Busca becarios por legajo
+        /// </summary>
+        /// <param name="legajo_estudiante">Es el legajo del estudiante en FRC</param>
+        /// <returns>Un becario encontrado por ID</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Beca/ObtenerBecariosInvestigacionXLegajo/{legajo_estudiante}
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///         "id": 0,
+        ///         "proyecto_investigacion": 
+        ///         {
+        ///             "id": 0,
+        ///             "nombre_proyecto_investigacion": "string",
+        ///             "activo": true,
+        ///             "centro_investigacion": "string"
+        ///         },
+        ///         "modulos_asignados": 0,
+        ///         "becario": 
+        ///         {
+        ///             "id": 0,
+        ///             "legajo": "string",
+        ///             "nombre_becario": "string",
+        ///             "alquila": true,
+        ///             "fecha_solicitud": "2024-07-21T16:40:09.230Z",
+        ///             "aceptado_inicio": true,
+        ///             "puede_pagarle": true,
+        ///             "activo": true,
+        ///             "anio_beca": 0,
+        ///             "id_becario_previo": 0
+        ///         }
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve un becario </response>
+        /// <response code="204" >No se encontro ningun becario </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet("{legajo_estudiante}")]
+        [ActionName("ObtenerBecariosInvestigacionXLegajo")]
+        [ProducesResponseType(typeof(BecariosSAEInvestigacion), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<BecariosSAEInvestigacion> ObtenerBecariosInvestigacionXLegajo(string legajo_estudiante)
+        {
+            try
+            {
+                //Este lo puede visualizar los becarios
+                if (TienePermiso(53))
+                {
+                    BecariosSAEInvestigacion? becar = BecAdapter.BuscarBecarioInvestigacionXLegajo(legajo_estudiante);
                     if (becar == null) return Conflict();
                     if (becar.id == -1) return NoContent();
                     else return Ok(becar);
@@ -966,7 +1112,85 @@ namespace API_WEB_SAE_6.Controllers
                 //Este lo puede visualizar los becarios
                 if ( TienePermiso(53))
                 {
-                    BecariosSAE? becar = BecAdapter.BuscarBecarioServicioXID(id_becario);
+                    BecariosSAEServicio? becar = BecAdapter.BuscarBecarioServicioXID(id_becario);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Busca becarios por legajo
+        /// </summary>
+        /// <param name="legajo_estudiante">Es el legajo provisto por FRC</param>
+        /// <returns>Un becario encontrado por ID</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Beca/ObtenerBecariosServiciosXLegajo/{legajo_estudiante}
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///         "id": 0,
+        ///         "servicio": 
+        ///         {
+        ///             "id": 0,
+        ///             "nombre": "string",
+        ///             "nro_telefono": 0,
+        ///             "nro_interno_telefono": 0,
+        ///             "horario_atencion": "string",
+        ///             "horario_atencion_real": "string",
+        ///             "email_institucional": "string"
+        ///         },
+        ///         "modulos_asignados": 0,
+        ///         "becario": 
+        ///         {
+        ///           "id": 0,
+        ///           "legajo": "string",
+        ///           "nombre_becario": "string",
+        ///           "alquila": true,
+        ///           "fecha_solicitud": "2024-07-21T17:56:49.671Z",
+        ///           "aceptado_inicio": true,
+        ///           "puede_pagarle": true,
+        ///           "activo": true,
+        ///           "anio_beca": 0,
+        ///           "id_becario_previo": 0
+        ///         }
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve un becario </response>
+        /// <response code="204" >No se encontro ningun becario </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet("{legajo_estudiante}")]
+        [ActionName("ObtenerBecariosServiciosXLegajo")]
+        [ProducesResponseType(typeof(BecariosSAEServicio), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<BecariosSAEServicio> ObtenerBecariosServiciosXLegajo(string legajo_estudiante)
+        {
+            try
+            {
+                //Este lo puede visualizar los becarios
+                if (TienePermiso(53))
+                {
+                    BecariosSAEServicio? becar = BecAdapter.BuscarBecarioServicioXLegajo(legajo_estudiante);
                     if (becar == null) return Conflict();
                     if (becar.id == -1) return NoContent();
                     else return Ok(becar);
@@ -1337,15 +1561,22 @@ namespace API_WEB_SAE_6.Controllers
         {
             try
             {
+                string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                 //Este lo puede visualizar los becarios
-                if ( TienePermiso(125))
+                if (userData != null && userData != "NO DATA" && TienePermiso(125))
                 {
-                    List<SituacionesAcademicas>? listProyec = BecAdapter.BuscarSituacionesAcademicasXLegajo(legajo);
+                    string legajoRegistrado = userData.Split(',')[0];
+                    string idPerfil = userData.Split(',')[1];
+                    if (idPerfil == "2" || idPerfil == "5" || legajoRegistrado == legajo)
+                    {
+                        List<SituacionesAcademicas>? listProyec = BecAdapter.BuscarSituacionesAcademicasXLegajo(legajo);
 
-                    if (listProyec == null) return Conflict();
-                    if (listProyec.Count == 0) return NoContent();
+                        if (listProyec == null) return Conflict();
+                        if (listProyec.Count == 0) return NoContent();
 
-                    return Ok(listProyec);
+                        return Ok(listProyec);
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
@@ -1594,7 +1825,7 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<BecariosSAEInvestigacion> ModificarBecarioInvestigacion(int id, BecariosSAEInvestigacion investiga)
+        public ActionResult<BecariosSAEInvestigacion> ModificarBecarioInvestigacion(int id,[FromBody] BecariosSAEInvestigacion investiga)
         {
             try
             {

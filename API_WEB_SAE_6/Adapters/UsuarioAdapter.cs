@@ -207,6 +207,44 @@ namespace API_WEB_SAE_6.Adapters
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="user"></param>
+        /// <param name="nombres"></param>
+        /// <param name="apellidos"></param>
+        /// <param name="idUserCreacion"></param>
+        /// <returns></returns>
+        public Usuarios CrearRegistroConUsuario(Usuarios user,string nombres,string apellidos, int idUserCreacion)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_legajo", MySqlDbType.VarChar) { Value = user.legajo },
+                        new("i_nombres", MySqlDbType.VarChar) { Value = nombres },
+                        new("i_apellidos", MySqlDbType.VarChar) { Value = apellidos},
+                        new("i_nombre_usuario", MySqlDbType.VarChar) { Value = user.nombre_usuario },
+                        new("i_id_perfil", MySqlDbType.Int32) { Value = user.id_perfil },
+                        new("i_id_usuario_alta", MySqlDbType.Bit) { Value = user.activo }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_USUARIOS_Crear_Registro_Estudiante", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearRegistroConUsuario", ex.Message, "UsuarioAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="legajo"></param>
         /// <param name="nombres"></param>
         /// <param name="apellidos"></param>

@@ -89,28 +89,32 @@ namespace API_WEB_SAE_6.Controllers
                     {
                         string legajoRegistrado = userData.Split(',')[0];
                         string idPerfil = userData.Split(',')[1];
-                        //Si es estudiante y su legajo no es el mismo del documento
-                        if (idPerfil == "1" &&  doc.legajo != legajoRegistrado) return BadRequest();
-                        SettingsReader set = SettingsReader.GetAppSettings();
-                        string uploadsPath = set.GetFilesLocation();
-                        if (uploadsPath != "ERROR")
+                        //Valida que quien descarga sea empleado, administrador o sea el legajo del mismo estudiante
+                        if (idPerfil == "2" || idPerfil == "5" || legajoRegistrado == doc.legajo)
                         {
-                            string filePath = Path.Combine(uploadsPath, doc.ruta);
-                            //Verifica si existe el archivo
-                            FileInfo fileInfo = new(filePath);
-
-                            if (fileInfo.Exists)
+                            SettingsReader set = SettingsReader.GetAppSettings();
+                            string uploadsPath = set.GetFilesLocation();
+                            if (uploadsPath != "ERROR")
                             {
-                                FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read); ;
-                                FileExtensionContentTypeProvider provider = new();
-                                //Se asegura que puedas descargar el archivo despues
-                                if (!provider.TryGetContentType(filePath, out string? contentType))
-                                    contentType = "application/octet-stream"; // fallback
-                                return File(stream, contentType, doc.nombre_documento);
+                                string filePath = Path.Combine(uploadsPath, doc.ruta);
+                                //Verifica si existe el archivo
+                                FileInfo fileInfo = new(filePath);
+
+                                if (fileInfo.Exists)
+                                {
+                                    FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read); ;
+                                    FileExtensionContentTypeProvider provider = new();
+                                    //Se asegura que puedas descargar el archivo despues
+                                    if (!provider.TryGetContentType(filePath, out string? contentType))
+                                        contentType = "application/octet-stream"; // fallback
+                                    return File(stream, contentType, doc.nombre_documento);
+                                }
+                                else return NotFound();
                             }
-                            else return NotFound();
+                            else return Conflict("Sistema de Archivos no encontrado");
                         }
-                        else return Conflict("Sistema de Archivos no encontrado");
+                        else return Unauthorized();
+                        
                     }
                     else return NotFound();
                 }
@@ -171,17 +175,21 @@ namespace API_WEB_SAE_6.Controllers
                 if (userData != null && userData != "NO DATA" && TienePermiso(154))
                 {
                     string legajoRegistrado = userData.Split(',')[0];
-                    if(legajoRegistrado != legajo) return BadRequest();
-                    List<DocumentosEstudiante>? documentos = EstudianteAdapter.BuscarDocumentosXLegajo(legajoRegistrado);
-
-                    if (documentos != null &&
-                        documentos.Count > 0 &&
-                        legajoRegistrado == documentos[0].legajo) return Ok(documentos);
-                    else
+                    string idPerfil = userData.Split(',')[1];
+                    if (idPerfil == "2" || idPerfil == "5" || legajoRegistrado == legajo)
                     {
-                        Logger.RegistrarDatos(Logger.LogOptions.Alerta, "DescargarDocumentacionXId", "Intento descargar documentacion que no era suya conociendo el ID del mismo. HOST:" + HttpContext.Request.Host.Value, ControllerName);
-                        return Forbid();
+                        List<DocumentosEstudiante>? documentos = EstudianteAdapter.BuscarDocumentosXLegajo(legajoRegistrado);
+
+                        if (documentos != null &&
+                            documentos.Count > 0 &&
+                            legajoRegistrado == documentos[0].legajo) return Ok(documentos);
+                        else
+                        {
+                            Logger.RegistrarDatos(Logger.LogOptions.Alerta, "DescargarDocumentacionXId", "Intento descargar documentacion que no era suya conociendo el ID del mismo. HOST:" + HttpContext.Request.Host.Value, ControllerName);
+                            return Forbid();
+                        }
                     }
+                    return Unauthorized();
                 }
                 else return Unauthorized();
             }
@@ -459,26 +467,30 @@ namespace API_WEB_SAE_6.Controllers
                         DocumentosEstudiante? doc = EstudianteAdapter.BuscarDocumentoXId(id_documento);
                         if (doc != null && doc.id != -1)
                         {
-                            string legajoActual = userData.Split(",")[0];
-                            string idPerfil = userData.Split(",")[1];
-                            if (idPerfil == "1" && doc.legajo != legajoActual) return BadRequest();
-                            SettingsReader set = SettingsReader.GetAppSettings();
-                            string uploadsPath = set.GetFilesLocation();
-                            if (uploadsPath != "ERROR")
+                            string legajoRegistrado = userData.Split(',')[0];
+                            string idPerfil = userData.Split(',')[1];
+                            if (idPerfil == "2" || idPerfil == "5" || legajoRegistrado == doc.legajo)
                             {
-                                string filePath = Path.Combine(uploadsPath, doc.ruta);
-                                //Verifica si existe el archivo
-                                FileInfo fileInfo = new(filePath);
-
-                                if (fileInfo.Exists)
+                                SettingsReader set = SettingsReader.GetAppSettings();
+                                string uploadsPath = set.GetFilesLocation();
+                                if (uploadsPath != "ERROR")
                                 {
-                                    fileInfo.Delete();
-                                    if (EstudianteAdapter.EliminarDocumento(id_documento)) return Ok("Documento Eliminado");
-                                    else return Conflict("Se elimino el archivo del sistema de archivos pero no su registro en BD");
+                                    string filePath = Path.Combine(uploadsPath, doc.ruta);
+                                    //Verifica si existe el archivo
+                                    FileInfo fileInfo = new(filePath);
+
+                                    if (fileInfo.Exists)
+                                    {
+                                        fileInfo.Delete();
+                                        if (EstudianteAdapter.EliminarDocumento(id_documento)) return Ok("Documento Eliminado");
+                                        else return Conflict("Se elimino el archivo del sistema de archivos pero no su registro en BD");
+                                    }
+                                    else return NotFound();
                                 }
-                                else return NotFound();
+                                else return Conflict("Sistema de Archivos no encontrado");
+
                             }
-                            else return Conflict("Sistema de Archivos no encontrado");
+                            else return Unauthorized();
                         }
                         else return NotFound();
                     }

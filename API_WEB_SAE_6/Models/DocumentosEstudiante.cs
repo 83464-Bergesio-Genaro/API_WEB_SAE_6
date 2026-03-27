@@ -35,6 +35,7 @@ namespace API_WEB_SAE_6.Models
         {
             id = int.Parse(data["id"].ToString() ?? "0");
             id_tipo_documento = int.Parse(data["id_tipo_documento"].ToString() ?? "0");
+            legajo = data["legajo"].ToString() ?? "";
             nombre_documento = data["nombre_documento"].ToString() ?? "ERROR";
             tamanio = int.Parse(data["tamanio"].ToString() ?? "0");
             ruta = data["ruta"].ToString() ?? "";

@@ -633,7 +633,54 @@ namespace API_WEB_SAE_6.Controllers
                 return BadRequest();
             }
         }
-
+        /// <summary>
+        /// Este endpoint crea el usuario y el registro que es necesario en la tabla estudiantesRegistrados. En teoria no ibamos a cargar esa tablas sino que computos nos iba a proveer de un servicio, como pasaron 2 años del pedido decidimos tener nuestros propios registros
+        /// </summary>
+        /// <param name="nuevoUsuario">El usuario que se utiliza en la aplicacion</param>
+        /// <param name="nombres">Los nombres de dicha persona en el sistema academico</param>
+        /// <param name="apellidos">Los apellidos de dicha persona en el sistema academico</param>
+        /// <returns>Un usuario creado en la base de datos o error</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        [HttpPost]
+        [Authorize]
+        [ActionName("CrearRegistroUsuario")]
+        [ProducesResponseType(typeof(Usuarios), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<Usuarios> CrearRegistroUsuario(
+            [FromBody]Usuarios nuevoUsuario,
+            [FromQuery] string nombres, 
+            string apellidos)
+        {
+            try
+            {
+                if (TienePermiso(13))
+                {
+                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserCrea))
+                    {
+                        nuevoUsuario = UserAdapter.CrearRegistroConUsuario(nuevoUsuario,nombres,apellidos, idUserCrea);
+                        if (nuevoUsuario.id != -1) return Created("Usuario Creado", nuevoUsuario);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
         /// <summary>
         /// Permite validar si el perfil tiene permiso en la BD para ejecutar este endpoint
         /// </summary>

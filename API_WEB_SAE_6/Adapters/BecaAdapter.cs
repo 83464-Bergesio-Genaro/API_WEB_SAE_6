@@ -103,7 +103,7 @@ namespace API_WEB_SAE_6.Adapters
                 }
                 catch (Exception ex)
                 {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarUsuarioXID", ex.Message, "BecaAdapter");
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarBecarioXID", ex.Message, "BecaAdapter");
                     return null;
                 }
             }
@@ -183,7 +183,7 @@ namespace API_WEB_SAE_6.Adapters
                 if (MotorDB == "MySQL")
                 {
                     GeneralAdapterMySQL consultor = new();
-                    DataTable respuesta = consultor.ExecuteView("ObtenerBecariosEconomicaActivos");
+                    DataTable respuesta = consultor.ExecuteView("MODULO_BECAS_Listar_Becarios_Economica_Activo");
                     //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
                     if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
 
@@ -208,7 +208,7 @@ namespace API_WEB_SAE_6.Adapters
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public BecariosSAE? BuscarBecarioEconomicaXID(int id)
+        public BecariosSAEEconomica? BuscarBecarioEconomicaXID(int id)
         {
             if (MotorDB == "MySQL")
             {
@@ -225,7 +225,35 @@ namespace API_WEB_SAE_6.Adapters
                 }
                 catch (Exception ex)
                 {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarUsuarioXID", ex.Message, "BecaAdapter");
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarBecarioEconomicaXID", ex.Message, "BecaAdapter");
+                    return null;
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="legajo"></param>
+        /// <returns></returns>
+        public BecariosSAEEconomica? BuscarBecarioEconomicaXLegajo(string legajo)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [new("i_legajo", MySqlDbType.VarChar) { Value = legajo }];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Buscar_Becarios_Economica_legajo", parameters);
+                    if (respuesta.Rows.Count == 0) return new();
+                    if (respuesta.Rows[0][0].ToString() == "ERROR") return null;
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarBecarioEconomicaXLegajo", ex.Message, "BecaAdapter");
                     return null;
                 }
             }
@@ -302,7 +330,7 @@ namespace API_WEB_SAE_6.Adapters
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public BecariosSAE? BuscarBecarioInvestigacionXID(int id)
+        public BecariosSAEInvestigacion? BuscarBecarioInvestigacionXID(int id)
         {
             if (MotorDB == "MySQL")
             {
@@ -319,7 +347,35 @@ namespace API_WEB_SAE_6.Adapters
                 }
                 catch (Exception ex)
                 {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarUsuarioXID", ex.Message, "BecaAdapter");
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarBecarioInvestigacionXID", ex.Message, "BecaAdapter");
+                    return null;
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="legajo"></param>
+        /// <returns></returns>
+        public BecariosSAEInvestigacion? BuscarBecarioInvestigacionXLegajo(string legajo)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [new("i_legajo", MySqlDbType.VarChar) { Value = legajo }];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Buscar_Becarios_Investigacion_Legajo", parameters);
+                    if (respuesta.Rows.Count == 0) return new();
+                    if (respuesta.Rows[0][0].ToString() == "ERROR") return null;
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarBecarioInvestigacionXLegajo", ex.Message, "BecaAdapter");
                     return null;
                 }
             }
@@ -396,7 +452,7 @@ namespace API_WEB_SAE_6.Adapters
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public BecariosSAE? BuscarBecarioServicioXID(int id)
+        public BecariosSAEServicio? BuscarBecarioServicioXID(int id)
         {
             if (MotorDB == "MySQL")
             {
@@ -414,6 +470,34 @@ namespace API_WEB_SAE_6.Adapters
                 catch (Exception ex)
                 {
                     Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarUsuarioXID", ex.Message, "BecaAdapter");
+                    return null;
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="legajo"></param>
+        /// <returns></returns>
+        public BecariosSAEServicio? BuscarBecarioServicioXLegajo(string legajo)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [new("i_legajo", MySqlDbType.VarChar) { Value = legajo }];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Buscar_Becarios_Servicios_Legajo", parameters);
+                    if (respuesta.Rows.Count == 0) return new();
+                    if (respuesta.Rows[0][0].ToString() == "ERROR") return null;
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarBecarioServicioXLegajo", ex.Message, "BecaAdapter");
                     return null;
                 }
             }
@@ -467,7 +551,7 @@ namespace API_WEB_SAE_6.Adapters
                     List<MySqlParameter> parameters = [new("i_id_becario", MySqlDbType.Int32) { Value = id }];
 
                     GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Buscar_Becarios_Economica_Id_becario", parameters);
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Buscar_Becario_Nacional_Id", parameters);
                     if (respuesta.Rows.Count == 0) return new();
                     if (respuesta.Rows[0][0].ToString() == "ERROR") return null;
                     else return new(respuesta.Rows[0]);
@@ -731,7 +815,7 @@ namespace API_WEB_SAE_6.Adapters
                 {
                     //Inicializa un valor y le asigna el tipo
                     List<MySqlParameter> parameters = [
-                        new("i_id_investigacion", MySqlDbType.Int32) { Value = becario.id },
+                        new("i_id_beca_servicio", MySqlDbType.Int32) { Value = becario.id },
                         new("i_id_becario", MySqlDbType.Int32) { Value = becario.becario.id },
                         new("i_id_servicio", MySqlDbType.Int32) { Value = becario.servicio?.id },
                         new("i_modulos", MySqlDbType.Int32) { Value = becario.modulos_asignados },
@@ -739,7 +823,7 @@ namespace API_WEB_SAE_6.Adapters
                         ];
 
                     GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Becario_Investigacion", parameters);
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Becario_Servicio", parameters);
                     if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
                     else return new(respuesta.Rows[0]);
                 }
@@ -804,7 +888,7 @@ namespace API_WEB_SAE_6.Adapters
                     List<MySqlParameter> parameters = [
                         new("i_id_proyecto", MySqlDbType.Int32) { Value = proyecto.id },
                         new("i_nombre", MySqlDbType.VarChar) { Value = proyecto.nombre_proyecto_investigacion },
-                        new("i_centro", MySqlDbType.Int32) { Value = proyecto.centro_investigacion },
+                        new("i_centro", MySqlDbType.VarChar) { Value = proyecto.centro_investigacion },
                         new("i_activo", MySqlDbType.Bit) { Value = proyecto.activo }
                         ];
 
@@ -839,13 +923,14 @@ namespace API_WEB_SAE_6.Adapters
                         new("i_id_situacion", MySqlDbType.Int32) { Value = situacion.id },
                         new("i_legajo", MySqlDbType.VarChar) { Value = situacion.legajo },
                         new("i_cursando", MySqlDbType.Bit) { Value = situacion.cursando },
+                        new("i_anio_situacion", MySqlDbType.Int32) { Value = situacion.anio_situacion },
                         new("i_cant_cur_anterior", MySqlDbType.Int32) { Value = situacion.cant_materias_cursadas_anterior },
                         new("i_cant_aprob_anterior", MySqlDbType.Int32) { Value = situacion.cant_materias_aprobadas_periodo_anterior },
                         new("i_cant_cur", MySqlDbType.Int32) { Value = situacion.cant_materias_cursando },
                         new("i_cant_aprob", MySqlDbType.Int32) { Value = situacion.cant_materias_aprobadas_total },
-                        new("i_prom_con_apla", MySqlDbType.Int32) { Value = GetDecimalForBase(situacion.prom_gral_con_aplazos)},
+                        new("i_prom_con_apla", MySqlDbType.Decimal) { Value = situacion.prom_gral_con_aplazos},
                         new("i_anio_ingre", MySqlDbType.Int32) { Value = situacion.anio_situacion },
-                        new("i_prom_sin_apla", MySqlDbType.Int32) { Value = GetDecimalForBase(situacion.prom_gral_sin_aplazos) },
+                        new("i_prom_sin_apla", MySqlDbType.Decimal) { Value = situacion.prom_gral_sin_aplazos },
                         new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }
                         ];
 
@@ -1079,13 +1164,14 @@ namespace API_WEB_SAE_6.Adapters
                     List<MySqlParameter> parameters = [
                         new("i_legajo", MySqlDbType.VarChar) { Value = situacion.legajo },
                         new("i_cursando", MySqlDbType.Bit) { Value = situacion.cursando },
+                        new("i_anio_situacion", MySqlDbType.Int32) { Value = situacion.anio_situacion },
                         new("i_cant_cur_anterior", MySqlDbType.Int32) { Value = situacion.cant_materias_cursadas_anterior },
                         new("i_cant_aprob_anterior", MySqlDbType.Int32) { Value = situacion.cant_materias_aprobadas_periodo_anterior },
                         new("i_cant_cur", MySqlDbType.Int32) { Value = situacion.cant_materias_cursando },
                         new("i_cant_aprob", MySqlDbType.Int32) { Value = situacion.cant_materias_aprobadas_total },
-                        new("i_prom_con_apla", MySqlDbType.Int32) { Value = GetDecimalForBase(situacion.prom_gral_con_aplazos)},
+                        new("i_prom_con_apla", MySqlDbType.Decimal) { Value = situacion.prom_gral_con_aplazos },
                         new("i_anio_ingre", MySqlDbType.Int32) { Value = situacion.anio_situacion },
-                        new("i_prom_sin_apla", MySqlDbType.Int32) { Value = GetDecimalForBase(situacion.prom_gral_sin_aplazos) },
+                        new("i_prom_sin_apla", MySqlDbType.Decimal) { Value = situacion.prom_gral_sin_aplazos },
                         new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idUserCreacion }
                        ];
 

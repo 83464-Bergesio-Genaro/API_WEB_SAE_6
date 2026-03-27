@@ -19,7 +19,7 @@ namespace API_WEB_SAE_6.Models
         public BecariosSAEEconomica(DataRow data)
         {
             id = int.Parse(data["id_economica"].ToString() ?? "0");
-            entrevista_realizada = bool.Parse(data["entrevista_realizada"].ToString() ?? "0");
+            entrevista_realizada = data["entrevista_realizada"].ToString() == "1";
             modulos_asignados = int.Parse(data["modulos_asignados"].ToString() ?? "0");
             becario = new BecariosSAE(data);
         }

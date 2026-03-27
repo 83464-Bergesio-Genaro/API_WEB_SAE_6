@@ -30,9 +30,9 @@ namespace API_WEB_SAE_6.Models
         /// <summary></summary>
         public BecariosSAE(DataRow data)
         {
-            id = int.Parse(data["id"].ToString() ?? "0");
+            id = int.Parse(data["id"].ToString() ?? "-1");
             legajo = data["legajo"].ToString() ?? "0";
-            nombre_becario = data["nombre_becario"].ToString() ?? "NO DATA";
+            nombre_becario = data["nombre_becario"].ToString() ?? "";
             alquila = data["alquila"].ToString() == "1";
             fecha_solicitud = DateTime.Parse(data["fecha_solicitud"].ToString() ?? DateTime.Now.ToShortDateString());
             aceptado_inicio = data["aceptado_inicio"].ToString() == "" ? null : data["aceptado_inicio"].ToString() == "1";
