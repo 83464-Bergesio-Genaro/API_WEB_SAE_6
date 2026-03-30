@@ -311,6 +311,7 @@ namespace API_WEB_SAE_6.Controllers
         /// Permite crear un nuevo documento
         /// </summary>
         /// <param name="archivo">El archivo que deseamos almacenar en la BD</param>
+        /// <param name="idTipoDocumento">El tipo de documento que subimos</param>
         /// <returns>Una inscripcion creada en la base de datos o error</returns>
         /// <remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
@@ -356,7 +357,7 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task <ActionResult<DocumentosEstudiante>> CrearDocumentoEstudiante(IFormFile archivo)
+        public async Task <ActionResult<DocumentosEstudiante>> CrearDocumentoEstudiante(int idTipoDocumento,[FromBody]IFormFile archivo)
         {
             try
             {
@@ -392,7 +393,7 @@ namespace API_WEB_SAE_6.Controllers
                             DocumentosEstudiante doc = new()
                             {
                                 id = -1,
-                                id_tipo_documento = 0,//Tengo que ver que hago con esto
+                                id_tipo_documento = idTipoDocumento,//Tengo que ver que hago con esto
                                 nombre_documento = archivo.FileName,
                                 legajo = legajoActual,
                                 ruta = Path.Combine("Estudiantes", legajoActual, fileName),//Es una ruta relativa desde el origen del sistema de archivos

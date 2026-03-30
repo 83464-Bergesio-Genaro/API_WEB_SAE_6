@@ -638,7 +638,8 @@ namespace API_WEB_SAE_6.Controllers
                                         using var stream = new FileStream(filePath, FileMode.Create);
                                         await documento.CopyToAsync(stream);
 
-                                        //Lo unico que cambia es el tamaño
+                                        //Lo unico que cambia es el tamaño y su tipo de documento, el nombre y la ruta se mantienen
+                                        doc.id_tipo_documento = idTipoDocumento;
                                         doc.tamanio = documento.Length;
                                         doc = PressAdapter.ModificarDocumento(doc, idUserMod);
 
@@ -746,6 +747,7 @@ namespace API_WEB_SAE_6.Controllers
         /// Permite crear un nuevo documento que puede ser consumido por CUALQUIERA sin necesidad de TOKEN
         /// </summary>
         /// <param name="archivo">El archivo que deseamos almacenar en la BD</param>
+        /// <param name="idTipoDocumento">El tipo de documento</param>
         /// <returns>Una inscripcion creada en la base de datos o error</returns>
         /// <remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
@@ -783,7 +785,7 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<string>> CrearDocumentoPrensaLibre(IFormFile archivo)
+        public async Task<ActionResult<string>> CrearDocumentoPrensaLibre(int idTipoDocumento,[FromBody]IFormFile archivo)
         {
             try
             {
@@ -820,7 +822,7 @@ namespace API_WEB_SAE_6.Controllers
                                 DocumentosPrensa doc = new()
                                 {
                                     id = -1,
-                                    id_tipo_documento = 0,//Tengo que ver que hago con esto
+                                    id_tipo_documento = idTipoDocumento,//Tengo que ver que hago con esto
                                     nombre_documento = archivo.FileName,
                                     ruta = Path.Combine("Prensa", "Publico", fileName),//Es una ruta relativa desde el origen del sistema de archivos
                                     tamanio = archivo.Length
