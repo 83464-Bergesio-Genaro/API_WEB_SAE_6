@@ -357,7 +357,7 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task <ActionResult<DocumentosEstudiante>> CrearDocumentoEstudiante(int idTipoDocumento,[FromBody]IFormFile archivo)
+        public async Task <ActionResult<DocumentosEstudiante>> CrearDocumentoEstudiante([FromRoute]int idTipoDocumento,[FromBody]IFormFile archivo)
         {
             try
             {
