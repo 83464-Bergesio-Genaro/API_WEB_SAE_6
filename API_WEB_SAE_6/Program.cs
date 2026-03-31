@@ -26,7 +26,6 @@ builder.Services.AddCors(options =>
 #region JWT configuration
 
 builder.Configuration.AddJsonFile("appsettings.json");
-Logger.DefineDirectorio(builder.Configuration);
 // Configura Kestrel para escuchar en el puerto definido en appsettings.json
 //builder.WebHost.ConfigureKestrel(serverOptions =>
 //{
@@ -100,7 +99,8 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+//Apenas inicia el programa el logger verifica donde guardar los datos
+Logger.DefinirDirectorios();
 var app = builder.Build();
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())

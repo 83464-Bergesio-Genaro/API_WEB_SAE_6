@@ -2,22 +2,25 @@
 
 namespace API_WEB_SAE_6.Models
 {
+    /// <summary></summary>
     public class ProyectosInvestigacion
     {
-        public int id { get; set; }
-        public string nombre_proyecto_investigacion { get; set; }
-        public bool activo { get; set; }
-        public string centro_investigacion { get; set; }
-        public ProyectosInvestigacion()
-        {
-
-        }
-
+        /// <summary></summary>
+        public int id { get; set; } = -1;
+        /// <summary></summary>
+        public string nombre_proyecto_investigacion { get; set; } = "";
+        /// <summary></summary>
+        public bool activo { get; set; } = false;
+        /// <summary></summary>
+        public string centro_investigacion { get; set; } = "";
+        /// <summary></summary>
+        public ProyectosInvestigacion(){}
+        /// <summary></summary>
         public ProyectosInvestigacion(DataRow data)
         {
             id = int.Parse(data["id_proyecto"].ToString() ?? "0");
             nombre_proyecto_investigacion = data["nombre_proyecto_investigacion"].ToString() ?? "NO ASIGNADO";
-            activo = bool.Parse(data["proyecto_activo"].ToString() ?? "0");
+            activo = data["proyecto_activo"].ToString() == "1";
             centro_investigacion = data["centro_investigacion"].ToString() ?? "NO ASIGNADO";
         }
     }

@@ -1,9 +1,13 @@
-﻿using API_WEB_SAE_6.Logs;
+﻿using API_WEB_SAE_6.Adapters;
+using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models;
+using API_WEB_SAE_6.Tools;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using System.Data;
+using System.IO.Compression;
 using System.Security.Claims;
 
 namespace API_WEB_SAE_6.Controllers
@@ -17,20 +21,21 @@ namespace API_WEB_SAE_6.Controllers
     public class PrensaController : Controller
     {
         /// <summary>
-        /// EN: The logger functions as a register of the exception that happen in the runtime. <br/>
-        /// ES: El logger funciona como el registro de excpciones que pasan en tiempo de ejecuccion <br/>
+        /// Es el adaptador de usuarios para consultar los permisos
         /// </summary>
-        private readonly Logger _logger = new();
-
-        private readonly IConfiguration _config;
+        private UsuarioAdapter UserAdapter = new();
+        /// <summary>
+        /// Es el adaptador con respecto a la base de datos para realizar llamadas
+        /// </summary>
+        private PrensaAdapter PressAdapter = new();
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="config"></param>
-        public PrensaController(IConfiguration config)
-        {
-            _config = config;
-        }
+        private readonly string ControllerName = "PrensaController";
+        /// <summary>
+        /// 
+        /// </summary>
+        public PrensaController(){}
         /// <summary>
         /// Recupera todas las publicaciones
         /// </summary>
@@ -52,7 +57,8 @@ namespace API_WEB_SAE_6.Controllers
         ///           "fecha_vigencia": "2024-08-01T15:42:11.205Z",
         ///           "prioridad": 0,
         ///           "no_dar_baja": true,
-        ///           "visualizaciones": 0
+        ///           "visualizaciones": 0,
+        ///           "documentos_asociados" "1,documentoPrueba-2,documento2"
         ///         }
         ///     ]
         ///     
@@ -74,29 +80,24 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<Publicaciones>>> ListarPublicacionesCompleto()
+        public ActionResult<IEnumerable<Publicaciones>> ListarPublicacionesCompleto()
         {
             try
             {
-                if (await TienePermiso(16))
+                if (TienePermiso(16))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_PRENSA_Listar_Publicaciones_Completo");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<Publicaciones>? listadoPubli = PressAdapter.ObtenerPublicacionesCompleto();
 
-                    List<Publicaciones> listadoDocumentos = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        Publicaciones documentos = new(row);
-                        listadoDocumentos.Add(documentos);
-                    }
-                    return Ok(listadoDocumentos);
+                    if (listadoPubli == null) return Conflict();
+                    if (listadoPubli.Count == 0) return NoContent();
+
+                    return Ok(listadoPubli);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO PUBLICACIONES");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -121,7 +122,8 @@ namespace API_WEB_SAE_6.Controllers
         ///           "fecha_vigencia": "2024-08-01T15:42:11.205Z",
         ///           "prioridad": 0,
         ///           "no_dar_baja": true,
-        ///           "visualizaciones": 0
+        ///           "visualizaciones": 0,
+        ///           "documentos_asociados" "1,documentoPrueba-2,documento2"
         ///         }
         ///     ]
         ///     
@@ -142,26 +144,20 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<Publicaciones>>> ListarPublicacionesActivas()
+        public ActionResult<IEnumerable<Publicaciones>>ListarPublicacionesActivas()
         {
             try
             {
-                DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_PRENSA_Listar_Publicaciones_Activas");
-                if (respuesta.Rows.Count == 0) return NoContent();
-                if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                List<Publicaciones>? listadoPubli = PressAdapter.ObtenerPublicacionesActivas();
 
-                List<Publicaciones> listadoDocumentos = new();
-                foreach (DataRow row in respuesta.Rows)
-                {
-                    Publicaciones documentos = new(row);
-                    listadoDocumentos.Add(documentos);
-                }
-                return Ok(listadoDocumentos);
+                if (listadoPubli == null) return Conflict();
+                if (listadoPubli.Count == 0) return NoContent();
 
+                return Ok(listadoPubli);
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO PUBLICACIONES ACTIVAS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -186,7 +182,8 @@ namespace API_WEB_SAE_6.Controllers
         ///       "fecha_vigencia": "2024-08-01T15:42:11.205Z",
         ///       "prioridad": 0,
         ///       "no_dar_baja": true,
-        ///       "visualizaciones": 0
+        ///       "visualizaciones": 0,
+        ///       "documentos_asociados" "1,documentoPrueba-2,documento2"
         ///     }  
         /// </remarks>
         /// <response code="200" >Devuelve una publicacion con este ID </response>
@@ -205,23 +202,18 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<Publicaciones>>> ObtenerPublicacionXId(int id_publicacion)
+        public ActionResult<IEnumerable<Publicaciones>> ObtenerPublicacionXId(int id_publicacion)
         {
             try
             {
-                Dictionary<string, string> parametros = new() {
-                        {"@id_publicacion",id_publicacion.ToString() }
-                };
-                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_PRENSA_Buscar_Publicacion_Id", parametros);
-                if (respuesta.Rows.Count == 0) return NoContent();
-                if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                return Ok(new Publicaciones(respuesta.Rows[0]));
-
+                Publicaciones? espe = PressAdapter.ObtenerPublicacionesXId(id_publicacion);
+                if (espe == null) return Conflict();
+                if (espe.id == -1) return NoContent();
+                else return Ok(espe);
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO DOCUMENTOS DE PUBLICACION");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -256,8 +248,8 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="403" >Su perfil no cuenta con este permiso</response>        
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpGet]
         [Authorize]
+        [HttpGet]
         [ActionName("ListarDocumentosSinData")]
         [ProducesResponseType(typeof(IEnumerable<DocumentosPrensa>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -266,29 +258,98 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<DocumentosPrensa>>> ListarDocumentosSinData()
+        public ActionResult<IEnumerable<DocumentosPrensa>> ListarDocumentosSinData()
         {
             try
             {
-                if (await TienePermiso(17))
+                if (TienePermiso(17))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_PRENSA_Listar_Documentos_Prensa");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List <DocumentosPrensa>? listadoPubli = PressAdapter.ObtenerDocumentacionSinData();
 
-                    List<DocumentosPrensa> listadoDocumentos = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        DocumentosPrensa documentos = new(row);
-                        listadoDocumentos.Add(documentos);
-                    }
-                    return Ok(listadoDocumentos);
+                    if (listadoPubli == null) return Conflict();
+                    if (listadoPubli.Count == 0) return NoContent();
+
+                    return Ok(listadoPubli);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO DOCUMENTOS PRENSA");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Descarga el documento INTERNO por su ID
+        /// </summary>
+        /// <returns>Un documento para visualizar en el front</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Prensa/DescargarDocumentoXId/{id}
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///       "id": 0,
+        ///       "id_tipo_documento": 0,
+        ///       "nombre_documento": "string",
+        ///       "datos_documento": "string",
+        ///       "extension": "string",
+        ///       "id_vinculacion": null (Este atributo solo lo recupera si lo buscamos por publicacion)
+        ///     }  
+        /// </remarks>
+        /// <response code="200" >Devuelve un documento para su visualizacion o descarga </response>
+        /// <response code="204" >No se encontro ningun documento con este ID </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>        
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [Authorize]
+        [HttpGet("{id}")]
+        [ActionName("DescargarDocumentoInternoXId")]
+        [ProducesResponseType(typeof(DocumentosPrensa), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<DocumentosPrensa> DescargarDocumentoInternoXId(int id)
+        {
+            try
+            {
+                DocumentosPrensa? doc = PressAdapter.ObtenerDocumentoXId(id);
+                if (doc != null && doc.id != -1 && doc.libre_consumo)
+                {
+                    SettingsReader set = SettingsReader.GetAppSettings();
+                    string uploadsPath = set.GetFilesLocation();
+                    if (uploadsPath != "ERROR")
+                    {
+                        string filePath = Path.Combine(uploadsPath, doc.ruta);
+                        //Verifica si existe el archivo
+                        FileInfo fileInfo = new(filePath);
+
+                        if (fileInfo.Exists)
+                        {
+                            FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read); ;
+                            FileExtensionContentTypeProvider provider = new();
+                            //Se asegura que puedas descargar el archivo despues
+                            if (!provider.TryGetContentType(filePath, out string? contentType))
+                                contentType = "application/octet-stream"; // fallback
+                            return File(stream, contentType, doc.nombre_documento);
+                        }
+                        else return NotFound();
+                    }
+                    else return Conflict("Sistema de Archivos no encontrado");
+                }
+                else return NotFound();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -329,29 +390,39 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<DocumentosPrensa>> DescargarDocumentoXId(int id)
+        public ActionResult<DocumentosPrensa> DescargarDocumentoXId(int id)
         {
             try
             {
-                Dictionary<string, string> parametros = new() {
-                        {"@id_doc",id.ToString() }
-                };
-                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_PRENSA_Buscar_Documento_Id", parametros);
-                if (respuesta.Rows.Count == 0) return NoContent();
-                if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                DocumentosPrensa? doc = PressAdapter.ObtenerDocumentoXId(id);
+                if (doc != null && doc.id != -1 && doc.libre_consumo)
+                {
+                    SettingsReader set = SettingsReader.GetAppSettings();
+                    string uploadsPath = set.GetFilesLocation();
+                    if (uploadsPath != "ERROR")
+                    {
+                        string filePath = Path.Combine(uploadsPath, doc.ruta);
+                        //Verifica si existe el archivo
+                        FileInfo fileInfo = new(filePath);
 
-                DocumentosPrensa documentos = new(respuesta.Rows[0]);
-                //string path = @"C:\Users\grber\Downloads\" + documentos.nombre_documento;
-                //// Write/Export File content into new text file
-                //System.IO.File.WriteAllBytes(path, documentos.datos_documento);
-
-                if (documentos.datos_documento == null) return NoContent();
-                else return Ok(documentos);
-
+                        if (fileInfo.Exists)
+                        {
+                            FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read); ;
+                            FileExtensionContentTypeProvider provider = new();
+                            //Se asegura que puedas descargar el archivo despues
+                            if (!provider.TryGetContentType(filePath, out string? contentType))
+                                contentType = "application/octet-stream"; // fallback
+                            return File(stream, contentType, doc.nombre_documento);
+                        }
+                        else return NotFound();
+                    }
+                    else return Conflict("Sistema de Archivos no encontrado");
+                }
+                else return NotFound();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO DOCUMENTO POR ID");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -395,29 +466,21 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<DocumentosPrensa>>> ListarDocumentoXPublicacion(int id_publicacion)
+        public ActionResult<IEnumerable<DocumentosPrensa>> ListarDocumentoXPublicacion(int id_publicacion)
         {
             try
             {
-                Dictionary<string, string> parametros = new() {
-                        {"@id_publicacion",id_publicacion.ToString() }
-                };
-                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_PRENSA_Buscar_Documento_Publicacion", parametros);
-                if (respuesta.Rows.Count == 0) return NoContent();
-                if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                List<DocumentosPrensa>? listadoPubli = PressAdapter.BuscarDocumentosXPublicacion(id_publicacion);
 
-                List<DocumentosPrensa> listadoDocumentos = new();
-                foreach (DataRow row in respuesta.Rows)
-                {
-                    DocumentosPrensa documentos = new(row);
-                    listadoDocumentos.Add(documentos);
-                }
-                return Ok(listadoDocumentos);
+                if (listadoPubli == null) return Conflict();
+                if (listadoPubli.Count == 0) return NoContent();
+
+                return Ok(listadoPubli);
 
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO DOCUMENTOS DE PUBLICACION");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -472,40 +535,31 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Publicaciones>> ModificarPublicacion(int id, Publicaciones publicacion)
+        public ActionResult<Publicaciones> ModificarPublicacion(int id, Publicaciones publicacion)
         {
             try
             {
                 if (id != publicacion.id) return BadRequest();
 
-                if (await TienePermiso(15))
+                if ( TienePermiso(15))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    Dictionary<string, string> parametros = new(){
-                            {"@id_publi",publicacion.titulo_publicacion },
-                            {"@titulo",publicacion.titulo_publicacion },
-                            {"@descripcion",publicacion.descripcion},
-                            {"@fecha_ini",publicacion.fecha_inicio.ToString() },
-                            {"@fecha_vig",publicacion.fecha_vigencia.ToString()},
-                            {"@no_dar_baja",publicacion.no_dar_baja.ToString() },
-                            {"@prioridad",publicacion.prioridad.ToString() },
-                            {"@visualizaciones",publicacion.visualizaciones.ToString() },
-                            {"@id_usuario_mod",usuarioActual }
-                    };
-
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_PRENSA_Modificar_Publicacion", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(new Publicaciones(respuesta.Rows[0]));
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        publicacion = PressAdapter.ModificarPublicaciones(publicacion, idUserMod);
+                        if (publicacion.id != -1) return Ok(publicacion);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO PUBLICACION");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -513,6 +567,7 @@ namespace API_WEB_SAE_6.Controllers
         /// Permite la modificacion de un documento
         /// </summary>
         /// <param name="id"> El ID del documento en la BD</param>
+        /// <param name="idTipoDocumento"> El ID del documento en la BD</param>
         /// <param name="documento"> Los datos modificados del documento</param>
         /// <returns>Un documento modificado en BD</returns>
         /// <remarks>
@@ -541,64 +596,72 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y no se modifica el usuario </response>
         /// <response code="413" >El archivo que se cargo supero los 50Mb </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpPut("{id}")]
+        [HttpPut("{id}/{idTipoDocumento}")]
         [ActionName("ModificarDocumento")]
-        [ProducesResponseType(typeof(Publicaciones), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Publicaciones>> ModificarDocumento(int id, IFormFile documento)
+        public async Task<ActionResult<string>> ModificarDocumento(int id,int idTipoDocumento,[FromBody] IFormFile documento)
         {
             try
             {
-                if (await TienePermiso(149))
+                if (TienePermiso(149))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    //Que no supere 50Mb
-                    if (documento.Length < 50000000)
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        byte[] fileBytes = new byte[documento.Length];
-
-                        using (var ms = new MemoryStream())
+                        //Que no supere 50Mb
+                        if (documento.Length < 50000000)
                         {
-                            documento.CopyTo(ms);
-                            fileBytes = ms.ToArray();
+                            string usuarioActual = userData.Split(',')[2];
+
+                            DocumentosPrensa? doc = PressAdapter.ObtenerDocumentoXId(id);
+                            if(doc != null && doc.id != -1)
+                            {
+                                SettingsReader set = SettingsReader.GetAppSettings();
+                                string uploadsPath = set.GetFilesLocation();
+                                if (uploadsPath != "ERROR")
+                                {
+                                    string filePath = Path.Combine(uploadsPath, doc.ruta);
+                                    //Verifica si existe el archivo
+                                    FileInfo fileInfo = new(filePath);
+
+                                    if (fileInfo.Exists)
+                                    {
+                                        using var stream = new FileStream(filePath, FileMode.Create);
+                                        await documento.CopyToAsync(stream);
+
+                                        //Lo unico que cambia es el tamaño y su tipo de documento, el nombre y la ruta se mantienen
+                                        doc.id_tipo_documento = idTipoDocumento;
+                                        doc.tamanio = documento.Length;
+                                        doc = PressAdapter.ModificarDocumento(doc, idUserMod);
+
+                                        if (doc.id != -1) return Ok(doc);
+                                        else return Conflict("Archivo no Modificado");
+                                    }
+                                    else return NotFound();
+                                }
+                                else return Conflict("Sistema de Archivos no encontrado");
+                            }
+                            else return NotFound();
                         }
-
-                        DocumentosPrensa doc = new()
-                        {
-                            id = 0,
-                            id_tipo_documento = 0,
-                            nombre_documento = documento.FileName,
-                            datos_documento = fileBytes
-                        };
-
-                        Dictionary<string, object> parametros = new() {
-                            {"id_doc",id.ToString()},
-                            {"@id_tipo", doc.id_tipo_documento.ToString() },
-                            {"@nombre", doc.nombre_documento },
-                            {"@datos", doc.datos_documento },
-                            {"@id_usuario_mod",usuarioActual },
-                        };
-
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedureDocument(_config, "MODULO_PRENSA_Modificar_Documento_Prensa", parametros);
-
-                        //En este caso sino modifica nada es un conflicto en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Ok(new DocumentosPrensa(respuesta.Rows[0]));
+                        else return StatusCode(413, "El archivo no debe superar los 50Mb");
                     }
-                    else return StatusCode(413, "El archivo no debe superar los 50Mb");
+                    else return Unauthorized();
+
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO DOCUMENTOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -654,45 +717,144 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Publicaciones>> CrearPublicacion([FromBody] Publicaciones publicacion)
+        public ActionResult<Publicaciones> CrearPublicacion([FromBody] Publicaciones publicacion)
         {
             try
             {
-                if (await TienePermiso(14))
+                if (TienePermiso(14))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            {"@titulo",publicacion.titulo_publicacion },
-                            {"@descripcion",publicacion.descripcion},
-                            {"@fecha_ini",publicacion.fecha_inicio.ToString() },
-                            {"@fecha_vig",publicacion.fecha_vigencia.ToString()},
-                            {"@no_dar_baja",publicacion.no_dar_baja.ToString() },
-                            {"@prioridad",publicacion.prioridad.ToString() },
-                            {"@visualizaciones",publicacion.visualizaciones.ToString() },
-                            {"@id_usuario_alta",usuarioActual }
-                        };
-
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_PRENSA_Crear_Publicacion", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Publicacion Creada", new Publicaciones(respuesta.Rows[0]));
+                        publicacion = PressAdapter.CrearPublicacion(publicacion, idUserCrea);
+                        if (publicacion.id != -1) return Created("Publicacion Creada", publicacion);
+                        else return Conflict();
                     }
-
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO PUBLICACION");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
         /// <summary>
-        /// Permite crear un nuevo documento
+        /// Permite crear un nuevo documento que puede ser consumido por CUALQUIERA sin necesidad de TOKEN
+        /// </summary>
+        /// <param name="archivo">El archivo que deseamos almacenar en la BD</param>
+        /// <param name="idTipoDocumento">El tipo de documento</param>
+        /// <returns>Una inscripcion creada en la base de datos o error</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     POST /api/Prensa/CrearDocumentoPrensa
+        ///     BODY:
+        ///     Un archivo de los tipos permitidos
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///       "id": 0,
+        ///       "id_tipo_documento": 0,
+        ///       "nombre_documento": "string",
+        ///       "datos_documento": byte[],
+        ///       "extension": "string"
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="201" >Devuelve el documento creado en la BD </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="413" >El archivo que se cargo supero los 50Mb </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpPost]
+        [ActionName("CrearDocumentoPrensaLibre")]
+        [Authorize]
+        [ProducesResponseType(typeof(DocumentosPrensa), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<string>> CrearDocumentoPrensaLibre(int idTipoDocumento,[FromBody]IFormFile archivo)
+        {
+            try
+            {
+                if (TienePermiso(148))
+                {
+                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        //Que no supere 50Mb
+                        if (archivo.Length < 50000000)
+                        {
+                            string usuarioActual = userData.Split(',')[2];
+                            SettingsReader set = SettingsReader.GetAppSettings();
+                            string uploadsPath = set.GetFilesLocation();
+                            if (uploadsPath != "ERROR")
+                            {
+                                uploadsPath = Path.Combine(uploadsPath, "Prensa","Publico");
+
+                                // crear carpeta si no existe
+                                if (!Directory.Exists(uploadsPath))
+                                    Directory.CreateDirectory(uploadsPath);
+
+                                // nombre único
+                                var fileName = $"{Guid.NewGuid()}_{archivo.FileName}";
+                                var filePath = Path.Combine(uploadsPath, fileName);
+
+                                // guardar archivo
+                                using var stream = new FileStream(filePath, FileMode.Create);
+                                await archivo.CopyToAsync(stream);
+
+                                DocumentosPrensa doc = new()
+                                {
+                                    id = -1,
+                                    id_tipo_documento = idTipoDocumento,//Tengo que ver que hago con esto
+                                    nombre_documento = archivo.FileName,
+                                    ruta = Path.Combine("Prensa", "Publico", fileName),//Es una ruta relativa desde el origen del sistema de archivos
+                                    tamanio = archivo.Length
+                                };
+
+                                doc = PressAdapter.CrearDocumento(doc, idUserMod);
+
+                                if (doc.id != -1) return Ok(doc);
+                                else
+                                {
+                                    //Sino cargo la referencia en la base lo elimina
+                                    FileInfo fileInfo = new(filePath);
+                                    fileInfo.Delete();
+                                    return Conflict();
+                                }
+                            }
+                            else return Conflict("Sistema de Archivos no encontrado");
+                        }
+                        else return StatusCode(413, "El archivo no debe superar los 50Mb");
+                    }
+                    else return Unauthorized();                              
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Permite crear un nuevo documento que puede ser consumido unicamente de manera interna
         /// </summary>
         /// <param name="archivo">El archivo que deseamos almacenar en la BD</param>
         /// <returns>Una inscripcion creada en la base de datos o error</returns>
@@ -723,65 +885,80 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="413" >El archivo que se cargo supero los 50Mb </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpPost]
-        [ActionName("CrearDocumentoPrensa")]
+        [ActionName("CrearDocumentoPrensaInterno")]
         [Authorize]
-        [ProducesResponseType(typeof(DocumentosPrensa), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<DocumentosPrensa>> CrearDocumentoPrensa(IFormFile archivo)
+        public async Task<ActionResult<string>> CrearDocumentoPrensaInterno(IFormFile archivo)
         {
             try
             {
-                if (await TienePermiso(148))
+                if (TienePermiso(148))
                 {
-
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
                     {
                         //Que no supere 50Mb
                         if (archivo.Length < 50000000)
                         {
                             string usuarioActual = userData.Split(',')[2];
-                            byte[] fileBytes = new byte[archivo.Length];
-
-                            using (var ms = new MemoryStream())
+                            SettingsReader set = SettingsReader.GetAppSettings();
+                            string uploadsPath = set.GetFilesLocation();
+                            if (uploadsPath != "ERROR")
                             {
-                                archivo.CopyTo(ms);
-                                fileBytes = ms.ToArray();
+                                uploadsPath = Path.Combine(uploadsPath, "Prensa", "Interno");
+
+                                // crear carpeta si no existe
+                                if (!Directory.Exists(uploadsPath))
+                                    Directory.CreateDirectory(uploadsPath);
+
+                                // nombre único
+                                var fileName = $"{Guid.NewGuid()}_{archivo.FileName}";
+                                var filePath = Path.Combine(uploadsPath, fileName);
+
+                                // guardar archivo
+                                using var stream = new FileStream(filePath, FileMode.Create);
+                                await archivo.CopyToAsync(stream);
+
+                                DocumentosPrensa doc = new()
+                                {
+                                    id = -1,
+                                    id_tipo_documento = 0,//Tengo que ver que hago con esto
+                                    nombre_documento = archivo.FileName,
+                                    ruta = Path.Combine("Prensa", fileName),//Es una ruta relativa desde el origen del sistema de archivos
+                                    tamanio = archivo.Length,
+                                };
+
+                                doc = PressAdapter.CrearDocumento(doc, idUserMod);
+
+                                if (doc.id != -1) return Ok(doc);
+                                else
+                                {
+                                    //Sino cargo la referencia en la base lo elimina
+                                    FileInfo fileInfo = new(filePath);
+                                    fileInfo.Delete();
+                                    return Conflict();
+                                }
                             }
-
-                            DocumentosPrensa doc = new()
-                            {
-                                id = 0,
-                                id_tipo_documento = 0,
-                                nombre_documento = archivo.FileName,
-                                datos_documento = fileBytes
-                            };
-
-                            Dictionary<string, object> parametros = new() {
-                                {"@id_tipo", doc.id_tipo_documento.ToString() },
-                                {"@nombre", doc.nombre_documento },
-                                {"@datos", doc.datos_documento },
-                                {"@id_usuario_alta",usuarioActual },
-                            };
-                            DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedureDocument(_config, "MODULO_PRENSA_Crear_Documento_Prensa", parametros);
-                            //En este caso sino crea es un error en la BD
-                            if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            return Created("Documento Creado", new DocumentosPrensa(respuesta.Rows[0]));
+                            else return Conflict("Sistema de Archivos no encontrado");
                         }
                         else return StatusCode(413, "El archivo no debe superar los 50Mb");
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO DOCUMENTO PRENSA");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -821,33 +998,29 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<VinculoDocPublic>> CrearVinculoDocPubli(int id_publicacion, int id_documento)
+        public ActionResult<VinculoDocPublic> CrearVinculoDocPubli(int id_publicacion, int id_documento)
         {
             try
             {
-                if (await TienePermiso(14))
+                if (TienePermiso(14))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            {"@id_publicacion", id_publicacion.ToString() },
-                            {"@id_documento", id_documento.ToString() },
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_PRENSA_Vincular_Documento_Publicacion", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Vinculacion Creada", new VinculoDocPublic(respuesta.Rows[0]));
+                        VinculoDocPublic doc = PressAdapter.CrearVinPubli(id_publicacion, id_documento);
+                        if (doc.id != -1) return Ok(doc);
+                        else return Conflict();
                     }
-
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO VINCULACION");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -883,37 +1056,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> EliminarPublicacion(int id)
+        public ActionResult<string> EliminarPublicacion(int id)
         {
             try
             {
-                if (await TienePermiso(17))
+                if (TienePermiso(17))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        Dictionary<string, string> parametros = new() {
-                           { "@id_publicacion",id.ToString() }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_PRENSA_Eliminar_Publicacion", parametros);
-
-                        if (respuesta.Rows.Count > 0)
-                        {
-                            if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                            else return Conflict(new HorarioDeportes(respuesta.Rows[0]));
-                        }
-                        else return Ok("Publicacion Eliminada");
-
+                        if (PressAdapter.EliminarPublicacion(id)) return Ok("Publicacion Eliminada");
+                        else return Conflict();
                     }
-
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR ELIMINANDO PUBLCIACION");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -949,37 +1110,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> EliminarVinculacionDocumentacion(int id_vinculacion)
+        public ActionResult<string> EliminarVinculacionDocumentacion(int id_vinculacion)
         {
             try
             {
-                if (await TienePermiso(150))
+                if (TienePermiso(150))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        Dictionary<string, string> parametros = new() {
-                           { "@id_docXPublic",id_vinculacion.ToString() }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_PRENSA_Eliminar_Vinculacion_Doc_Publi", parametros);
-
-                        if (respuesta.Rows.Count > 0)
-                        {
-                            if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                            else return Conflict(new VinculoDocPublic(respuesta.Rows[0]));
-                        }
-                        else return Ok("Vinculacion Eliminada");
-
+                        if (PressAdapter.EliminarVinculacion(id_vinculacion)) return Ok("Publicacion Eliminada");
+                        else return Conflict();
                     }
-
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR ELIMINANDO VINCULACION DOCUMENTO PUBLICACION");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1015,51 +1164,59 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> EliminarDocumentoPrensa(int id_documento)
+        public ActionResult<string> EliminarDocumentoPrensa(int id_documento)
         {
             try
             {
-                if (await TienePermiso(150))
+                if (TienePermiso(150))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        Dictionary<string, string> parametros = new() {
-                           { "@id_doc",id_documento.ToString() }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_PRENSA_Eliminar_Documento_Prensa", parametros);
-
-                        if (respuesta.Rows.Count > 0)
+                        DocumentosPrensa? doc = PressAdapter.ObtenerDocumentoXId(id_documento);
+                        if (doc != null && doc.id != -1)
                         {
-                            if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                            else return Conflict(new DocumentosPrensa(respuesta.Rows[0]));
+                            SettingsReader set = SettingsReader.GetAppSettings();
+                            string uploadsPath = set.GetFilesLocation();
+                            if (uploadsPath != "ERROR")
+                            {
+                                string filePath = Path.Combine(uploadsPath, doc.ruta);
+                                //Verifica si existe el archivo
+                                FileInfo fileInfo = new(filePath);
+
+                                if (fileInfo.Exists)
+                                {
+                                    fileInfo.Delete();
+                                    if (PressAdapter.EliminarDocumento(id_documento)) return Ok("Documento Eliminado");
+                                    else return Conflict("Se elimino el archivo del sistema de archivos pero no su registro en BD");
+                                }
+                                else return NotFound();
+                            }
+                            else return Conflict("Sistema de Archivos no encontrado");
                         }
-                        else return Ok("Documento Eliminado");
-
+                        else return NotFound();
                     }
-
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR ELIMINANDO DOCUMENTO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
-        private async Task<bool> TienePermiso(int id_funcion)
+        /// <summary>
+        /// Permite validar si el perfil tiene permiso en la BD para ejecutar este endpoint
+        /// </summary>
+        /// <param name="id_funcion">Es la funcion que queremos validar </param>
+        /// <returns> True = Tiene permisos || False = No tiene permisos </returns>
+        private bool TienePermiso(int id_funcion)
         {
             string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
             if (userData == null || userData == "NO DATA") return false;
-
-            int id_perfil;
-            try { id_perfil = int.Parse(userData.Split(',')[1]); }
-            catch (Exception) { return false; }
-
-            PerfilesController p = new();
-            return await p.TienePermiso(_config, id_perfil, id_funcion);
+            if (int.TryParse(userData.Split(',')[1], out int id_perfil)) return UserAdapter.TienePermiso(id_funcion, id_perfil);
+            else return false;
         }
     }
 }

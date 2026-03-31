@@ -1,19 +1,20 @@
-﻿using API_WEB_SAE_6.Logs;
+﻿using API_WEB_SAE_6.Adapters;
+using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models;
-using Microsoft.AspNetCore.Cors;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Logging;
-using System.Text;
-using System.Security.Claims;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
+using API_WEB_SAE_6.Tools;
 using Microsoft.AspNetCore.Authorization;
-using System.Net;
-using Microsoft.AspNetCore.Authentication;
-using System.Data;
+using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.VisualBasic;
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
+using System.Net;
+using System.Security.Cryptography;
+using System.Security.Claims;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Xml;
 
 
 namespace API_WEB_SAE_6.Controllers
@@ -27,27 +28,27 @@ namespace API_WEB_SAE_6.Controllers
     [ApiController]
     public class UsuariosController : Controller
     {
-        private readonly string secretKey;
         /// <summary>
-        /// EN: The logger functions as a register of the exception that happen in the runtime. <br/>
-        /// ES: El logger funciona como el registro de excpciones que pasan en tiempo de ejecuccion <br/>
+        /// Es el adaptador con respecto a la base de datos para realizar llamadas
         /// </summary>
-        private readonly Logger _logger = new();
+        private UsuarioAdapter UserAdapter = new();
+        /// <summary>
+        /// 
+        /// </summary>
+        private readonly string SecretKey;
+        /// <summary>
+        /// 
+        /// </summary>
+        private readonly string ControllerName = "UsuariosController";
 
-
-        private readonly IConfiguration _config;
         /// <summary>
         /// Recupera el contexto desde el archivo API_WEB_SAEContext <br/>
         /// </summary>
-        /// <param name="config">
-        /// Es el acceso a la base de datos con las credenciales de owner <br/>
-        /// </param>
-        public UsuariosController( IConfiguration config)
-        {
 
-            _config = config;
+        public UsuariosController()
+        {
             //Funciona asi y no recuperando la clave correcta, desconozco el origen del problema
-            secretKey = config.GetSection("Settings").GetSection("secretkey").ToString() ?? "ERROR";
+            SecretKey = SettingsReader.GetAppSettings().SecretKey;
         }
         /// <summary>
         /// Lo utilizo para probar si funciona la API en diferentes entornos
@@ -70,15 +71,130 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpGet]
         [ActionName("MockResponse")]
-        public async Task<ActionResult<IEnumerable<string>>> MockResponse()
+        public ActionResult<string> MockResponse()
         {
-            return Ok
-                ("Hello World! V3");
+            return Ok("Hello World! V3");
         }
+        /// <summary>
+        /// Es el metodo para realizar consultas a la web de frc.utn.edu.ar para validar las credenciales de los estudiantes.
+        /// </summary>
+        /// <param name="legajo">Un valor provisto por el centro de computos unico e irrepetible</param>
+        /// <param name="password">La credencial de la persona</param>
+        /// <param name="dominio">Es adonde el usuario esta cargado</param>
+        /// <returns>Retorna un string con el nombre de la persona</returns>
+        private async Task<string> CheckSessionA4(string legajo,string password,string dominio)
+        {
+            try
+            {
+                HttpClientHandler handler = new()
+                {
+                    CookieContainer = new CookieContainer(),
+                    AllowAutoRedirect = false
+                };
+
+                HttpClient client = new HttpClient(handler);
+
+                // abrir la página de login primero
+                await client.GetAsync("https://www.frc.utn.edu.ar/logon.frc");
+                client.DefaultRequestHeaders.Add("Origin", "https://www.frc.utn.edu.ar");
+                client.DefaultRequestHeaders.Add("Referer", "https://www.frc.utn.edu.ar/logon.frc");
+
+                FormUrlEncodedContent content = new(new Dictionary<string, string>()
+                {
+                    {"userid", "userid"},
+                    {"t", "79845687"},
+                    {"page", "login"},
+                    {"redir", "/logon.frc"},
+                    {"txtUsuario", legajo},
+                    {"txtDominios", dominio},
+                    {"pwdClave", password}
+                });
+                //BORRAR CUANDO DESCUBRA COMO CAMBIAR MIS CREDENCIALES EN A4
+                if (legajo == "gbergesio" && dominio == "frc" && password == "SAEGestion>A4") return "Genaro Rafael Bergesio";
+
+                HttpResponseMessage response = await client.PostAsync(
+                    "https://www.frc.utn.edu.ar/funciones/sesion/iniciarSesion.frc",
+                    content
+                );
+                
+                //Revisamos si con las credenciales que nos dio la persona es valido su sesion.
+                //Cuando funcion en teoria devuelve el codigo 302 y nos redirige a "/"
+                if(response.Headers.Location != null && response.StatusCode == HttpStatusCode.Found && response.Headers.Location.ToString() == "/")
+                {
+                    CookieCollection cookiesSistema = handler.CookieContainer.GetCookies(new Uri("https://www.frc.utn.edu.ar"));
+                    if (cookiesSistema.Count == 7)
+                    {
+                        client.DefaultRequestHeaders.Add(
+                            "User-Agent",
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
+                        );
+                        client.DefaultRequestHeaders.Add("Accept", "text/html");
+
+                        string bodyHtml;
+                        //Legajos numericos son de estudiantes buscamos su nombre completo
+                        if (int.TryParse(legajo, out int _))
+                        {
+                            bodyHtml = await (await client.GetAsync("https://a4.frc.utn.edu.ar/4/")).Content.ReadAsStringAsync();
+                            Match match = Regex.Match(bodyHtml, @"var\s+nombreCompleto\s*=\s*'([^']*)'");
+
+                            if (match.Success)
+                                return match.Groups[1].Value;
+                            else return "ERROR";
+                        }
+                        else
+                        {
+                            //A los docentes los redirige aca 
+                            bodyHtml = await (await client.GetAsync("https://www.frc.utn.edu.ar/academico3/")).Content.ReadAsStringAsync(); ;
+
+                            // 1. Extraer el form específico
+                            var match = Regex.Match(bodyHtml,
+                                @"<form[^>]*id\s*=\s*[""']frmLogOut[""'][^>]*>.*?<strong>(.*?)</strong>.*?</form>",
+                                RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+                            if (match.Success)
+                                return match.Groups[1].Value;
+                            else return "ERROR";
+                        }
+
+                    }
+                        
+                    else
+                    {
+                        Logger.RegistrarDatos(Logger.LogOptions.Alerta, Request.Path, "Creo sesion correctamente pero no devolvio el numero correcto de cookies", ControllerName);
+                        return "ERROR";
+                    }
+                }
+                //Las credenciales fallaron
+                else return "ERROR";
+            }
+            catch (Exception)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, Request.Path, "ERROR CREANDO LAS CREDENCIALES A4", ControllerName);
+                return "ERROR";
+            }
+        }
+        private static int? ValidarDominio(string dominio)
+        {
+            return dominio switch
+            {
+                "sistemas" => 5,
+                "electrica" => 7,
+                "electronica" => 9,
+                "mecanica" => 17,
+                "metalurgica" => 18,
+                "quimica" => 21,
+                "industrial" => 24,
+                "civil" => 31,
+                _ => null,
+            };
+        }
+
         /// <summary>
         /// Genera un JWT.
         /// </summary>
         /// <param name="legajo">Es un legajo tanto de alumno, docente o no docente en la UTN FRC </param>
+        /// <param name="password">Es la contraseña correspondiente a dicho usuario, debe estar encriptada </param>
+        /// <param name="dominio">Es el area a la cual se asigna el legajo, sistemas, electronica, decanato, etc </param>
         /// <returns> Devuelve un Jason Web Token para utilizar en la sesion.</returns>
         /// <remarks>
         /// Para utilizarlo legajo no debe ser nulo y ademas tenemos que tener un usuario en A4 y esta aplicacion. 
@@ -87,66 +203,104 @@ namespace API_WEB_SAE_6.Controllers
         ///  
         /// Ejemplo de uso:
         /// 
-        ///     GET /api/Usuarios/ObtenerTokenJWT/{legajo}
+        ///     GET /api/Usuarios/ObtenerTokenJWT/{legajo}/{dominio}/{password}
         ///     
         ///     RESPONSE:
         ///     {
-        ///         "token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiI4MzQ2NCw1LDAiLCJuYmYiOjE3MTY5MDMzODU"
+        ///         "token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiI4MzQ2NCw1LDAiLCJuYmYiOjE3MTY5MDMzODU",
+        ///          "legajo_armado": "string",
+        ///          "nombre_usuario": "string",
+        ///          id_perfil: 0,
         ///     }
         ///     
         /// </remarks>
         /// <response code="201" >Devuelve un JWT que permite usar la aplicacion </response>
         /// <response code="204" >El usuario no esta registrado en la aplicacion </response>
+        /// <response code="401" >El usuario no introdujo crendeciales validas en A4 </response>
         /// <response code="409" >Ocurre un error en la creacion de la sesión o en la lectura del AppSettings </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpGet("{legajo}")]
+        [HttpGet("{legajo}/{dominio}/{password}")]
         [ActionName("ObtenerTokenJWT")]
         [ProducesResponseType(typeof(JWToken), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         //[ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-
-        public async Task<ActionResult<IEnumerable<JWToken>>> ObtenerTokenJWT(string legajo)
+        public ActionResult<JWToken> ObtenerTokenJWT(string legajo, string dominio,string password)
         {
             // A desarrollar: Mediante SP recupera el Usuario que esta logueado y su perfil de usuario, eso lo usamos para dejarlo guardado en cada consulta
             // Ademas renovamos su sesion todas las veces que utiliza un EndPoint (Cuando averigue como).
 
             //string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-            if (secretKey == "ERROR") Conflict();
+            if (SecretKey == "ERROR") Conflict();
 
-            Usuarios usr = await BuscarUsuarioActivoXLegajo(legajo);
-            if (usr != null && usr.legajo != null && usr.id_perfil != null && usr.id != null)
+            //Estoy haciendo basicamente scrapping para corroborar que pusieron bien las credenciales.
+
+            //string nombreCompleto = "Bergesio Genaro Rafael";
+            string nombreCompleto = CheckSessionA4(legajo, password, dominio).Result;
+            //Verifica que nuestras credenciales son validas en autogestion
+            if (nombreCompleto != "ERROR")
             {
-                string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
-                if (ip != null && ip != "" && await CrearSesionUsuario(usr.id))
-                {
-                    _logger.RegistrarIP(legajo, ip);
-                    byte[] keyBytes = Encoding.UTF8.GetBytes(secretKey);
-                    ClaimsIdentity claims = new();
-                    //Guardamos todos los datos necesarios para operar mas adelante
-                    string claimValue = legajo + "," + usr.id_perfil + "," + usr.id;
-                    claims.AddClaim(new Claim(ClaimTypes.NameIdentifier, claimValue));
-
-                    SecurityTokenDescriptor tokenDescriptor = new()
-                    {
-                        Subject = claims,
-                        Expires = DateTime.UtcNow.AddMinutes(30),
-                        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256Signature),
-                    };
-                    JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-                    SecurityToken TokenConfig = tokenHandler.CreateToken(tokenDescriptor);
-                    string ActualToken = tokenHandler.WriteToken(TokenConfig);
-                    JWToken token = new(ActualToken);
-                    return Created("/api/Usuarios/ObtenerTokenJWT/", token);
-                }
+                //Esto es porque los legajos de las personas no son simplemente el numero o las letras sino que se incluye el dominio
+                string legajoArmado = legajo + "@" + ((dominio!="frc")? dominio+"." : "") + "frc.utn.edu.ar";
+                //Si esta persona no existe en nuestro sistema debemos crear su registro
+                Usuarios? usr = UserAdapter.BuscarUsuarioActivoXLegajo(legajoArmado);
+                if (usr != null && usr.legajo != "" && usr.id_perfil != -1 && usr.id != -1)
+                    return CrearToken(legajoArmado, usr);
+                //Usuario no encontrado
                 else
                 {
-                    _logger.RegistrarERROR(new("ERROR AL CREAR LA SESION EN LA BASE DE DATOS. ACCESO NO AUTORIZADO"), "No se pudo crear Sesion");
-                    return Conflict();
+                    int? id_especialidad = ValidarDominio(dominio);
+                    // Solo cargamos a los estudiantes, docentes y demas deben ser cargados a mano como usuarios
+                    if (int.TryParse(legajo,out int _) && id_especialidad != null)
+                    {
+                        usr = UserAdapter.CrearEstudiante(legajoArmado, nombreCompleto,"", (int)id_especialidad);
+                        if (usr != null && usr.legajo != "" && usr.id_perfil != -1 && usr.id != -1)
+                            return CrearToken(legajoArmado, usr);
+                        else return Conflict();
+                    }
+                    //Probamos insertandolo en nuestra BD
+                    else return NoContent();
                 }
             }
-            else return NoContent();
+            else return Unauthorized();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="legajoArmado"></param>
+        /// <param name="usr"></param>
+        /// <returns></returns>
+        private ActionResult<JWToken> CrearToken(string legajoArmado,Usuarios usr)
+        {
+            string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
+            if (ip != null && ip != "" && UserAdapter.CrearSesionUsuario(usr.id))
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.IP, this.Request.Path, "IP: " + ip, ControllerName);
+                byte[] keyBytes = Encoding.UTF8.GetBytes(SecretKey);
+                ClaimsIdentity claims = new();
+                //Guardamos todos los datos necesarios para operar mas adelante
+                string claimValue = legajoArmado + "," + usr.id_perfil + "," + usr.id;
+                claims.AddClaim(new Claim(ClaimTypes.NameIdentifier, claimValue));
+
+                SecurityTokenDescriptor tokenDescriptor = new()
+                {
+                    Subject = claims,
+                    Expires = DateTime.UtcNow.AddMinutes(30),
+                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256Signature),
+                };
+                JwtSecurityTokenHandler tokenHandler = new();
+                SecurityToken TokenConfig = tokenHandler.CreateToken(tokenDescriptor);
+                string ActualToken = tokenHandler.WriteToken(TokenConfig);
+                JWToken token = new(ActualToken,legajoArmado,usr.nombre_usuario,usr.id_perfil);
+                return Created("/api/Usuarios/ObtenerTokenJWT/", token);
+            }
+            else
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, "ERROR AL CREAR LA SESION EN LA BASE DE DATOS. ACCESO NO AUTORIZADO", ControllerName);
+                return Conflict();
+            }
         }
 
         /// <summary>
@@ -189,30 +343,26 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<Usuarios>>> ObtenerUsuarios()
+        public ActionResult<IEnumerable<Usuarios>> ObtenerUsuarios()
         {
             try
             {
                 //El numero de funcion es: 9
-                if (await TienePermiso(9))
+                if (TienePermiso(9))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_USUARIOS_Vista_Usuarios");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    //Si es null es que ocurrio un conflicto en BD.
+                    List<Usuarios>? usuarios = UserAdapter.ObtenerUsuariosCompleto();
 
-                    List<Usuarios> usuarios = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        Usuarios user = new(row);
-                        usuarios.Add(user);
-                    }
+                    if(usuarios == null) return Conflict();
+                    if (usuarios.Count == 0) return NoContent();
+
                     return Ok(usuarios);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "PRUEBA");
+                Logger.RegistrarDatos(Logger.LogOptions.Error,this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -255,26 +405,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Usuarios>> ObtenerUsuarioXId(int id)
+        public ActionResult<Usuarios> ObtenerUsuarioXId(int id)
         {
             try
             {
-                if (await TienePermiso(10))
+                if (TienePermiso(10))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_usuario", id.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_USUARIOS_Buscar_Usuarios_Id", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    else return Ok(new Usuarios(respuesta.Rows[0]));
+                    Usuarios? user = UserAdapter.BuscarUsuarioXID(id);
+
+                    if (user == null) return Conflict();
+                    if (user.id != -1) return Ok(user);
+                    else return NoContent();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO USUARIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -317,27 +464,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Usuarios>> ObtenerUsuarioXlegajo(string legajo)
+        public ActionResult<Usuarios> ObtenerUsuarioXlegajo(string legajo)
         {
             try
             {
                 //El numero de funcion es: 11
-                if (await TienePermiso(11))
+                if (TienePermiso(11))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        {"@legajo",legajo }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_USUARIOS_Buscar_Usuarios_Legajo", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    else return Ok(new Usuarios(respuesta.Rows[0]));
+                    Usuarios? user = UserAdapter.BuscarUsuarioXLegajo(legajo);
+                    if (user == null) return Conflict();
+                    if (user.id != -1) return Ok(user);
+                    else return NoContent();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO USUARIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -388,37 +531,33 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Usuarios>> ModificarUsuario(int id, [FromBody, Required] Usuarios user)
+        public ActionResult<Usuarios> ModificarUsuario(int id, [FromBody, Required] Usuarios user)
         {
             try
             {
                 if (id != user.id) return BadRequest();
                 //El numero de funcion es: 12
-                if (await TienePermiso(12))
+                if (TienePermiso(12))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    Dictionary<string, string> parametros = new() {
-                        { "@id_usuario",user.id.ToString() },
-                        { "@legajo", user.legajo },
-                        { "@nombre_usuario", user.nombre_usuario },
-                        { "@id_perfil", user.id_perfil.ToString() },
-                        { "@activo",user.activo.ToString() },
-                        { "@id_usuario_mod",usuarioActual.ToString() }
-                    };
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        user = UserAdapter.ModificarUsuario(user, idUserMod);
 
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_USUARIOS_Modificar_Usuario", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(user);
+                        if (user.id != -1) return Ok(user);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO USUARIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -467,89 +606,81 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Usuarios>> CrearUsuario([FromBody] Usuarios user)
+        public ActionResult<Usuarios> CrearUsuario([FromBody] Usuarios user)
         {
             try
             {
-                if (await TienePermiso(13))
+                if (TienePermiso(13))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@legajo", user.legajo },
-                            { "@nombre_usuario", user.nombre_usuario },
-                            { "@id_perfil", user.id_perfil.ToString() },
-                            {"@id_usuario_alta",usuarioActual.ToString() }
-                        };
-
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_USUARIOS_Crear_Usuario", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Usuario Creado", user);
+                        user = UserAdapter.CrearUsuario(user, idUserCrea);
+                        if (user.id != -1) return Created("Usuario Creado",user);
+                        else return Conflict();
                     }
-
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO USUARIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
         /// <summary>
-        /// Este metodo crea una nueva sesion de Usuario para tener registro de las actividades de cada uno
+        /// Este endpoint crea el usuario y el registro que es necesario en la tabla estudiantesRegistrados. En teoria no ibamos a cargar esa tablas sino que computos nos iba a proveer de un servicio, como pasaron 2 años del pedido decidimos tener nuestros propios registros
         /// </summary>
-        /// <param name="id_usuario">Es el IF de usuario que tiene en la aplicacion</param>
-        /// <returns> True = Crea la sesion || False = Ocurre un error en la creacion de la sesion</returns>
-        private async Task<bool> CrearSesionUsuario(int id_usuario)
+        /// <param name="nuevoUsuario">El usuario que se utiliza en la aplicacion</param>
+        /// <param name="nombres">Los nombres de dicha persona en el sistema academico</param>
+        /// <param name="apellidos">Los apellidos de dicha persona en el sistema academico</param>
+        /// <param name="id_especialidad">La especialidad la cual cursa. Puede ser nula en caso de empleados</param>
+        /// <returns>Un usuario creado en la base de datos o error</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        [HttpPost]
+        [Authorize]
+        [ActionName("CrearRegistroUsuario")]
+        [ProducesResponseType(typeof(Usuarios), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<Usuarios> CrearRegistroUsuario(
+            [FromBody]Usuarios nuevoUsuario,
+            [FromQuery] string nombres,
+            [FromQuery] string apellidos,
+            [FromQuery] int? id_especialidad)
         {
             try
             {
-                Dictionary<string, string> parametros = new()
+                if (TienePermiso(13))
                 {
-                    {"@id_usuario", id_usuario.ToString()},
-                    {"@fecha_ini", DateTime.UtcNow.ToString()},
-                    {"@fecha_fin",DateTime.UtcNow.AddMinutes(30).ToString()}
-                };
-
-                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_USUARIOS_Crear_Sesion", parametros);
-
-                if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return false;
-                else return true;
+                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserCrea))
+                    {
+                        nuevoUsuario = UserAdapter.CrearRegistroConUsuario(nuevoUsuario,nombres,apellidos, id_especialidad, idUserCrea);
+                        if (nuevoUsuario.id != -1) return Created("Usuario Creado", nuevoUsuario);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
+                }
+                else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO LA SESION");
-                return false;
-            }
-
-        }
-        /// <summary>
-        /// Es un endpoint oculto que sirve para validar la existencia de ese legajo en nuestra BD
-        /// </summary>
-        /// <param name="legajo">Legajo activo en la base y la aplicacion</param>
-        /// <returns>Un usuario existente en nuestra base o error</returns>
-        private async Task<Usuarios> BuscarUsuarioActivoXLegajo(string legajo)
-        {
-            try
-            {
-                //MODULO_USUARIOS_Buscar_Usuario_Activo_Legajo
-                Dictionary<string, string> parametros = new()
-                {
-                    {"@legajo",legajo }
-                };
-                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_USUARIOS_Buscar_Usuario_Activo_Legajo", parametros);
-                if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
-                else return new(respuesta.Rows[0]);
-            }
-            catch (Exception ex)
-            {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO USUARIO");
-                return new();
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
             }
         }
         /// <summary>
@@ -557,17 +688,12 @@ namespace API_WEB_SAE_6.Controllers
         /// </summary>
         /// <param name="id_funcion">Es la funcion que queremos validar </param>
         /// <returns> True = Tiene permisos || False = No tiene permisos </returns>
-        private async Task<bool> TienePermiso(int id_funcion)
+        private bool TienePermiso(int id_funcion)
         {
             string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
             if (userData == null || userData == "NO DATA") return false;
-
-            int id_perfil;
-            try { id_perfil = int.Parse(userData.Split(',')[1]); }
-            catch (Exception) { return false; }
-
-            PerfilesController p = new();
-            return await p.TienePermiso(_config, id_perfil, id_funcion);
+            if(int.TryParse(userData.Split(',')[1], out int id_perfil)) return UserAdapter.TienePermiso(id_funcion, id_perfil);
+            else return false;
         }
     }
 }

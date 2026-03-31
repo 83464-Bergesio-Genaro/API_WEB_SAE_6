@@ -2,22 +2,28 @@
 
 namespace API_WEB_SAE_6.Models
 {
+    /// <summary></summary>
     public class BecariosNacionales
     {
-        public int id { get; set; }
-        public string legajo { get; set; }
+        /// <summary></summary>
+        public int id { get; set; } = -1;
+        /// <summary></summary>
+        public string legajo { get; set; } = "";
+        /// <summary></summary>
         public string? nombre_becario { get; set; }
-        public int tipo_plan { get; set; }
-        public int anio_beca { get; set; }
-        public bool regularizacion { get; set; }
-        public bool cumplimiento_servicio { get; set; }
+        /// <summary></summary>
+        public int tipo_plan { get; set; } = -1;
+        /// <summary></summary>
+        public int anio_beca { get; set; } = -1;
+        /// <summary></summary>
+        public bool regularizacion { get; set; }=false;
+        /// <summary></summary>
+        public bool cumplimiento_servicio { get; set; } = false;
+        /// <summary></summary>
         public bool activo { get; set; }
-
-        public BecariosNacionales()
-        {
-
-        }
-
+        /// <summary></summary>
+        public BecariosNacionales() { }
+        /// <summary></summary>
         public BecariosNacionales(DataRow data)
         {
             id = int.Parse(data["id"].ToString() ?? "0");
@@ -25,9 +31,9 @@ namespace API_WEB_SAE_6.Models
             nombre_becario = data["nombre_becario"].ToString() ?? "NO DATA";
             tipo_plan = int.Parse(data["tipo_plan"].ToString() ?? "0");
             anio_beca = int.Parse(data["anio_beca"].ToString() ?? "0");
-            regularizacion = bool.Parse(data["regularizacion"].ToString() ?? "0");
-            cumplimiento_servicio = bool.Parse(data["cumplimiento_servicio"].ToString() ?? "0");
-            activo = bool.Parse(data["activo"].ToString() ?? "0");
+            regularizacion = data["regularizacion"].ToString() == "1";
+            cumplimiento_servicio = data["cumplimiento_servicio"].ToString() == "1";
+            activo = data["activo"].ToString() == "1";
         }
     }
 }

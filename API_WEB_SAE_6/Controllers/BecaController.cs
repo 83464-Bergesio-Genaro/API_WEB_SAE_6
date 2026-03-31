@@ -1,4 +1,5 @@
-﻿using API_WEB_SAE_6.Logs;
+﻿using API_WEB_SAE_6.Adapters;
+using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
@@ -17,22 +18,23 @@ namespace API_WEB_SAE_6.Controllers
     [ApiController]
     public class BecaController : Controller
     {
-
-
-        private readonly IConfiguration _config;
+        /// <summary>
+        /// Es el adaptador de usuarios para consultar los permisos
+        /// </summary>
+        private UsuarioAdapter UserAdapter = new();
+        /// <summary>
+        /// Es el adaptador con respecto a la base de datos para realizar llamadas
+        /// </summary>
+        private BecaAdapter BecAdapter = new();
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="config"></param>
-        public BecaController(IConfiguration config)
-        {
-            _config = config;
-        }
+        private readonly string ControllerName = "BecaController";
         /// <summary>
-        /// EN: The logger functions as a register of the exception that happen in the runtime. <br/>
-        /// ES: El logger funciona como el registro de excpciones que pasan en tiempo de ejecuccion <br/>
+        /// 
         /// </summary>
-        private readonly Logger _logger = new();
+        public BecaController() { }
+        
         /// <summary>
         /// Recupera todos los becarios
         /// </summary>
@@ -77,30 +79,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<BecariosSAE>>> ObtenerBecariosCompleto()
+        public ActionResult<IEnumerable<BecariosSAE>> ObtenerBecariosCompleto()
         {
             try
             {
                 //El numero de funcion es: 53
-                if (await TienePermiso(53))
+                if (TienePermiso(53))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_BECAS_Listar_Becarios_SAE");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<BecariosSAE>? listBec = BecAdapter.ObtenerBecariosCompleto();
 
-                    List<BecariosSAE> listadoBecarios = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        BecariosSAE becario = new(row);
-                        listadoBecarios.Add(becario);
-                    }
-                    return Ok(listadoBecarios);
+                    if (listBec == null) return Conflict();
+                    if (listBec.Count == 0) return NoContent();
+
+                    return Ok(listBec);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO BECARIOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -148,30 +145,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<BecariosSAE>>> ObtenerBecariosActivos()
+        public ActionResult<IEnumerable<BecariosSAE>> ObtenerBecariosActivos()
         {
             try
             {
                 //El numero de funcion es: 53
-                if (await TienePermiso(53))
+                if (TienePermiso(53))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_BECAS_Listar_Becarios_SAE_Activos");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<BecariosSAE>? listBec = BecAdapter.ObtenerBecariosActivo();
 
-                    List<BecariosSAE> listadoBecarios = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        BecariosSAE becarios = new(row);
-                        listadoBecarios.Add(becarios);
-                    }
-                    return Ok(listadoBecarios);
+                    if (listBec == null) return Conflict();
+                    if (listBec.Count == 0) return NoContent();
+
+                    return Ok(listBec);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO BECARIOS ACTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -218,29 +210,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosSAE>> ObtenerBecariosXId(int id_becario)
+        public ActionResult<BecariosSAE> ObtenerBecariosXId(int id_becario)
         {
             try
             {
                 //Este lo puede visualizar los becarios
-                if (await TienePermiso(53))
+                if (TienePermiso(53))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_becario", id_becario.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Buscar_Becarios_SAE_Id", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    BecariosSAE becario = new(respuesta.Rows[0]);
-                    return Ok(becario);
+                    BecariosSAE? becar = BecAdapter.BuscarBecarioXID(id_becario);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO BECARIOS SAE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -287,34 +273,24 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<BecariosSAE>>> ObtenerBecariosXLegajo(string legajo)
+        public ActionResult<IEnumerable<BecariosSAE>> ObtenerBecariosXLegajo(string legajo)
         {
             try
             {
                 //Este lo puede visualizar los becarios
-                if (await TienePermiso(53))
+                if (TienePermiso(53))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@legajo", legajo.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Buscar_Becarios_SAE_Legajo", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<BecariosSAE> listadoBecarios = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        BecariosSAE becarios = new(row);
-                        listadoBecarios.Add(becarios);
-                    }
-                    return Ok(listadoBecarios);
+                    BecariosSAE? becar = BecAdapter.BuscarBecarioXLegajo(legajo);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
                 }
                 else return Forbid();
+
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO BECARIOS SAE POR LEGAJO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -368,30 +344,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<BecariosSAEEconomica>>> ObtenerBecariosEconomica()
+        public ActionResult<IEnumerable<BecariosSAEEconomica>> ObtenerBecariosEconomica()
         {
             try
             {
                 //El numero de funcion es: 53
-                if (await TienePermiso(53))
+                if ( TienePermiso(53))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_BECAS_Listar_Becarios_Economica");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<BecariosSAEEconomica>? listBec = BecAdapter.ObtenerBecariosEconomica();
 
-                    List<BecariosSAEEconomica> listadoEconomicas = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        BecariosSAEEconomica becario = new(row);
-                        listadoEconomicas.Add(becario);
-                    }
-                    return Ok(listadoEconomicas);
+                    if (listBec == null) return Conflict();
+                    if (listBec.Count == 0) return NoContent();
+
+                    return Ok(listBec);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO BECARIOS ECONOMICAS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -445,30 +416,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<BecariosSAEEconomica>>> ObtenerBecariosEconomicaActivos()
+        public ActionResult<IEnumerable<BecariosSAEEconomica>> ObtenerBecariosEconomicaActivos()
         {
             try
             {
                 //El numero de funcion es: 53
-                if (await TienePermiso(53))
+                if ( TienePermiso(53))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_BECAS_Listar_Becarios_Economica_Activo");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<BecariosSAEEconomica>? listBec = BecAdapter.ObtenerBecariosEconomicaActivos();
 
-                    List<BecariosSAEEconomica> listadoEconomicas = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        BecariosSAEEconomica becario = new(row);
-                        listadoEconomicas.Add(becario);
-                    }
-                    return Ok(listadoEconomicas);
+                    if (listBec == null) return Conflict();
+                    if (listBec.Count == 0) return NoContent();
+
+                    return Ok(listBec);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO BECARIOS ECONOMICAS ACTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -521,32 +487,97 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosSAE>> ObtenerBecariosEconomicaXIdBecario(int id_becario)
+        public ActionResult<BecariosSAEEconomica> ObtenerBecariosEconomicaXIdBecario(int id_becario)
         {
             try
             {
                 //Este lo puede visualizar los becarios
-                if (await TienePermiso(53))
+                if ( TienePermiso(53))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_becario", id_becario.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Buscar_Becarios_Economica_Id_becario", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    BecariosSAE becario = new(respuesta.Rows[0]);
-                    return Ok(becario);
+                    BecariosSAEEconomica? becar = BecAdapter.BuscarBecarioEconomicaXID(id_becario);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO BECARIOS ECONOMICA POR ID");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
+        /// <summary>
+        /// Busca becarios por ID becario
+        /// </summary>
+        /// <param name="legajo_estudiante">Es el legajo del estudiante en FRC</param>
+        /// <returns>Un becario encontrado por legajo</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Beca/ObtenerBecariosEconomicaXLegajo/{legajo_estudiante}
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///         "id": 0,
+        ///         "entrevista_realizada": true,
+        ///         "modulo_asignados": 0,
+        ///         "becario": 
+        ///         {
+        ///             "id": 0,
+        ///             "legajo": "string",
+        ///             "nombre_becario": "string",
+        ///             "alquila": true,
+        ///             "fecha_solicitud": "2024-07-21T14:50:52.102Z",
+        ///             "aceptado_inicio": true,
+        ///             "puede_pagarle": true,
+        ///             "activo": true,
+        ///             "anio_beca": 0,
+        ///             "id_becario_previo": 0
+        ///         }
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve un becario </response>
+        /// <response code="204" >No se encontro ningun becario </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet("{legajo_estudiante}")]
+        [ActionName("ObtenerBecariosEconomicaXLegajo")]
+        [ProducesResponseType(typeof(BecariosSAE), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<BecariosSAEEconomica> ObtenerBecariosEconomicaXLegajo(string legajo_estudiante)
+        {
+            try
+            {
+                //Este lo puede visualizar los becarios
+                if (TienePermiso(53))
+                {
+                    BecariosSAEEconomica? becar = BecAdapter.BuscarBecarioEconomicaXLegajo(legajo_estudiante);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+
+
         /// <summary>
         /// Recupera todos los becarios con modulos de investigacion
         /// </summary>
@@ -603,30 +634,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<BecariosSAEInvestigacion>>> ObtenerBecariosInvestigacion()
+        public ActionResult<IEnumerable<BecariosSAEInvestigacion>> ObtenerBecariosInvestigacion()
         {
             try
             {
                 //El numero de funcion es: 53
-                if (await TienePermiso(53))
+                if ( TienePermiso(53))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_BECAS_Listar_Becarios_Investigacion");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<BecariosSAEInvestigacion>? listBec = BecAdapter.ObtenerBecariosInvestigacion();
 
-                    List<BecariosSAEInvestigacion> listadoInvestigacion = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        BecariosSAEInvestigacion becario = new(row);
-                        listadoInvestigacion.Add(becario);
-                    }
-                    return Ok(listadoInvestigacion);
+                    if (listBec == null) return Conflict();
+                    if (listBec.Count == 0) return NoContent();
+
+                    return Ok(listBec);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO BECARIOS INVESTIGACION");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -686,30 +712,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<BecariosSAEInvestigacion>>> ObtenerBecariosInvestigacionActivos()
+        public ActionResult<IEnumerable<BecariosSAEInvestigacion>> ObtenerBecariosInvestigacionActivos()
         {
             try
             {
                 //El numero de funcion es: 53
-                if (await TienePermiso(53))
+                if ( TienePermiso(53))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_BECAS_Listar_Becarios_Investigacion_Activos");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<BecariosSAEInvestigacion>? listBec = BecAdapter.ObtenerBecariosInvestigacionActivos();
 
-                    List<BecariosSAEInvestigacion> listadoInvestigacion = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        BecariosSAEInvestigacion becario = new(row);
-                        listadoInvestigacion.Add(becario);
-                    }
-                    return Ok(listadoInvestigacion);
+                    if (listBec == null) return Conflict();
+                    if (listBec.Count == 0) return NoContent();
+
+                    return Ok(listBec);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO BECARIOS INVESTIGACION ACTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -768,29 +789,98 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosSAEInvestigacion>> ObtenerBecariosInvestigacionXIdBecario(int id_becario)
+        public ActionResult<BecariosSAEInvestigacion> ObtenerBecariosInvestigacionXIdBecario(int id_becario)
         {
             try
             {
                 //Este lo puede visualizar los becarios
-                if (await TienePermiso(53))
+                if ( TienePermiso(53))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_becario", id_becario.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Buscar_Becarios_Investigacion_Id_becario", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    BecariosSAEInvestigacion becario = new(respuesta.Rows[0]);
-                    return Ok(becario);
+                    BecariosSAEInvestigacion? becar = BecAdapter.BuscarBecarioInvestigacionXID(id_becario);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO BECARIOS INVESTIGACION POR ID");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Busca becarios por legajo
+        /// </summary>
+        /// <param name="legajo_estudiante">Es el legajo del estudiante en FRC</param>
+        /// <returns>Un becario encontrado por ID</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Beca/ObtenerBecariosInvestigacionXLegajo/{legajo_estudiante}
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///         "id": 0,
+        ///         "proyecto_investigacion": 
+        ///         {
+        ///             "id": 0,
+        ///             "nombre_proyecto_investigacion": "string",
+        ///             "activo": true,
+        ///             "centro_investigacion": "string"
+        ///         },
+        ///         "modulos_asignados": 0,
+        ///         "becario": 
+        ///         {
+        ///             "id": 0,
+        ///             "legajo": "string",
+        ///             "nombre_becario": "string",
+        ///             "alquila": true,
+        ///             "fecha_solicitud": "2024-07-21T16:40:09.230Z",
+        ///             "aceptado_inicio": true,
+        ///             "puede_pagarle": true,
+        ///             "activo": true,
+        ///             "anio_beca": 0,
+        ///             "id_becario_previo": 0
+        ///         }
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve un becario </response>
+        /// <response code="204" >No se encontro ningun becario </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet("{legajo_estudiante}")]
+        [ActionName("ObtenerBecariosInvestigacionXLegajo")]
+        [ProducesResponseType(typeof(BecariosSAEInvestigacion), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<BecariosSAEInvestigacion> ObtenerBecariosInvestigacionXLegajo(string legajo_estudiante)
+        {
+            try
+            {
+                //Este lo puede visualizar los becarios
+                if (TienePermiso(53))
+                {
+                    BecariosSAEInvestigacion? becar = BecAdapter.BuscarBecarioInvestigacionXLegajo(legajo_estudiante);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -853,30 +943,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<BecariosSAEServicio>>> ObtenerBecariosServicio()
+        public ActionResult<IEnumerable<BecariosSAEServicio>> ObtenerBecariosServicio()
         {
             try
             {
                 //El numero de funcion es: 53
-                if (await TienePermiso(53))
+                if ( TienePermiso(53))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_BECAS_Listar_Becarios_Servicios");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<BecariosSAEServicio>? listBec = BecAdapter.ObtenerBecariosServicio();
 
-                    List<BecariosSAEServicio> listadoServicio = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        BecariosSAEServicio becario = new(row);
-                        listadoServicio.Add(becario);
-                    }
-                    return Ok(listadoServicio);
+                    if (listBec == null) return Conflict();
+                    if (listBec.Count == 0) return NoContent();
+
+                    return Ok(listBec);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO BECARIOS SERVICIOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -939,30 +1024,26 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<BecariosSAEServicio>>> ObtenerBecariosServiciosActivos()
+        public ActionResult<IEnumerable<BecariosSAEServicio>> ObtenerBecariosServiciosActivos()
         {
             try
             {
                 //El numero de funcion es: 53
-                if (await TienePermiso(53))
+                if ( TienePermiso(53))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_BECAS_Listar_Becarios_Servicios_Activos");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<BecariosSAEServicio>? listBec = BecAdapter.ObtenerBecariosServicioActivos();
 
-                    List<BecariosSAEServicio> listadoServicios = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        BecariosSAEServicio becario = new(row);
-                        listadoServicios.Add(becario);
-                    }
-                    return Ok(listadoServicios);
+                    if (listBec == null) return Conflict();
+                    if (listBec.Count == 0) return NoContent();
+
+                    return Ok(listBec);
                 }
                 else return Forbid();
+
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO BECARIOS SERVICIOS ACTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1024,29 +1105,101 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosSAEServicio>> ObtenerBecariosServiciosXIdBecario(int id_becario)
+        public ActionResult<BecariosSAEServicio> ObtenerBecariosServiciosXIdBecario(int id_becario)
         {
             try
             {
                 //Este lo puede visualizar los becarios
-                if (await TienePermiso(53))
+                if ( TienePermiso(53))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_becario", id_becario.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Buscar_Becarios_Servicios_Id_becario", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    BecariosSAEServicio becario = new(respuesta.Rows[0]);
-                    return Ok(becario);
+                    BecariosSAEServicio? becar = BecAdapter.BuscarBecarioServicioXID(id_becario);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO BECARIOS SERVICIOS POR ID");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Busca becarios por legajo
+        /// </summary>
+        /// <param name="legajo_estudiante">Es el legajo provisto por FRC</param>
+        /// <returns>Un becario encontrado por ID</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Beca/ObtenerBecariosServiciosXLegajo/{legajo_estudiante}
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///         "id": 0,
+        ///         "servicio": 
+        ///         {
+        ///             "id": 0,
+        ///             "nombre": "string",
+        ///             "nro_telefono": 0,
+        ///             "nro_interno_telefono": 0,
+        ///             "horario_atencion": "string",
+        ///             "horario_atencion_real": "string",
+        ///             "email_institucional": "string"
+        ///         },
+        ///         "modulos_asignados": 0,
+        ///         "becario": 
+        ///         {
+        ///           "id": 0,
+        ///           "legajo": "string",
+        ///           "nombre_becario": "string",
+        ///           "alquila": true,
+        ///           "fecha_solicitud": "2024-07-21T17:56:49.671Z",
+        ///           "aceptado_inicio": true,
+        ///           "puede_pagarle": true,
+        ///           "activo": true,
+        ///           "anio_beca": 0,
+        ///           "id_becario_previo": 0
+        ///         }
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve un becario </response>
+        /// <response code="204" >No se encontro ningun becario </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet("{legajo_estudiante}")]
+        [ActionName("ObtenerBecariosServiciosXLegajo")]
+        [ProducesResponseType(typeof(BecariosSAEServicio), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<BecariosSAEServicio> ObtenerBecariosServiciosXLegajo(string legajo_estudiante)
+        {
+            try
+            {
+                //Este lo puede visualizar los becarios
+                if (TienePermiso(53))
+                {
+                    BecariosSAEServicio? becar = BecAdapter.BuscarBecarioServicioXLegajo(legajo_estudiante);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1091,30 +1244,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<BecariosNacionales>>> ObtenerBecariosNacionales()
+        public ActionResult<IEnumerable<BecariosNacionales>> ObtenerBecariosNacionales()
         {
             try
             {
                 //Este lo puede visualizar los becarios nacionales
-                if (await TienePermiso(145))
+                if ( TienePermiso(145))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_BECAS_Listar_Becarios_Nacional");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<BecariosNacionales>? listBec = BecAdapter.ObtenerBecariosNacionales();
 
-                    List<BecariosNacionales> listadoBecariosNacionales = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        BecariosNacionales becarios = new(row);
-                        listadoBecariosNacionales.Add(becarios);
-                    }
-                    return Ok(listadoBecariosNacionales);
+                    if (listBec == null) return Conflict();
+                    if (listBec.Count == 0) return NoContent();
+
+                    return Ok(listBec);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO BECARIOS NACIONALES");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1158,29 +1306,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosNacionales>> ObtenerBecariosNacionalesXId(int id_becario)
+        public ActionResult<BecariosNacionales> ObtenerBecariosNacionalesXId(int id_becario)
         {
             try
             {
                 //Este lo puede visualizar los becarios
-                if (await TienePermiso(145))
+                if ( TienePermiso(145))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_becario", id_becario.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Buscar_Becario_Nacional_Id", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    BecariosNacionales becario = new(respuesta.Rows[0]);
-                    return Ok(becario);
+                    BecariosNacionales? becar = BecAdapter.BuscarBecarioNacionalXID(id_becario);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO BECARIOS NACIONALES POR ID");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1226,34 +1368,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<BecariosNacionales>>> ObtenerBecariosNacionalesXLegajo(string legajo)
+        public ActionResult<IEnumerable<BecariosNacionales>> ObtenerBecariosNacionalesXLegajo(string legajo)
         {
             try
             {
                 //Este lo puede visualizar los becarios
-                if (await TienePermiso(145))
+                if ( TienePermiso(145))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@legajo", legajo }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Buscar_Becario_Nacional_Legajo", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<BecariosNacionales> listadoBecariosNacionales = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        BecariosNacionales becarios = new(row);
-                        listadoBecariosNacionales.Add(becarios);
-                    }
-                    return Ok(listadoBecariosNacionales);
+                    BecariosNacionales? becar = BecAdapter.BuscarBecarioNacionalXLegajo(legajo);
+                    if (becar == null) return Conflict();
+                    if (becar.id == -1) return NoContent();
+                    else return Ok(becar);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO BECARIOS NACIONALES POR LEGAJO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1295,30 +1426,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<ProyectosInvestigacion>>> ObtenerProyectosInvestigacion()
+        public ActionResult<IEnumerable<ProyectosInvestigacion>> ObtenerProyectosInvestigacion()
         {
             try
             {
                 //Este lo puede visualizar los proyectos
-                if (await TienePermiso(143))
+                if ( TienePermiso(143))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_BECAS_Listar_Proyectos_Investigacion");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<ProyectosInvestigacion>? listProyec = BecAdapter.ObtenerProyectos();
 
-                    List<ProyectosInvestigacion> listadoProyectos = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        ProyectosInvestigacion proyecto = new(row);
-                        listadoProyectos.Add(proyecto);
-                    }
-                    return Ok(listadoProyectos);
+                    if (listProyec == null) return Conflict();
+                    if (listProyec.Count == 0) return NoContent();
+
+                    return Ok(listProyec);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO PROYECTOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1363,30 +1489,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<ServiciosInternosFacultad>>> ObtenerServiciosInternos()
+        public ActionResult<IEnumerable<ServiciosInternosFacultad>> ObtenerServiciosInternos()
         {
             try
             {
                 //Este lo puede visualizar los servicios 
-                if (await TienePermiso(144))
+                if ( TienePermiso(144))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_BECAS_Listar_Servicios");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<ServiciosInternosFacultad>? listProyec = BecAdapter.ObtenerServiciosDisponibles();
 
-                    List<ServiciosInternosFacultad> listadoProyectos = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        ServiciosInternosFacultad proyecto = new(row);
-                        listadoProyectos.Add(proyecto);
-                    }
-                    return Ok(listadoProyectos);
+                    if (listProyec == null) return Conflict();
+                    if (listProyec.Count == 0) return NoContent();
+
+                    return Ok(listProyec);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO PROYECTOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1436,34 +1557,32 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<SituacionesAcademicas>>> ObtenerSituacionesAcademicasXLegajo(string legajo)
+        public ActionResult<IEnumerable<SituacionesAcademicas>> ObtenerSituacionesAcademicasXLegajo(string legajo)
         {
             try
             {
+                string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                 //Este lo puede visualizar los becarios
-                if (await TienePermiso(125))
+                if (userData != null && userData != "NO DATA" && TienePermiso(125))
                 {
-                    Dictionary<string, string> parametros = new()
+                    string legajoRegistrado = userData.Split(',')[0];
+                    string idPerfil = userData.Split(',')[1];
+                    if (idPerfil == "2" || idPerfil == "5" || legajoRegistrado == legajo)
                     {
-                        { "@legajo", legajo }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Buscar_Situaciones_Academicas_Legajo", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                        List<SituacionesAcademicas>? listProyec = BecAdapter.BuscarSituacionesAcademicasXLegajo(legajo);
 
-                    List<SituacionesAcademicas> ListadoSituaciones = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        SituacionesAcademicas situacionAcademica = new(row);
-                        ListadoSituaciones.Add(situacionAcademica);
+                        if (listProyec == null) return Conflict();
+                        if (listProyec.Count == 0) return NoContent();
+
+                        return Ok(listProyec);
                     }
-                    return Ok(ListadoSituaciones);
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO SITUACIONES POR LEGAJO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1521,43 +1640,33 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosSAE>> ModificarBecarioSAE(int id, BecariosSAE becario)
+        public ActionResult<BecariosSAE> ModificarBecarioSAE(int id, BecariosSAE becario)
         {
             try
             {
                 if (id != becario.id) return BadRequest();
 
-                if (await TienePermiso(52))
+                if ( TienePermiso(52))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserMod))
                     {
+                        becario = BecAdapter.ModificarBecario(becario, idUserMod);
 
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@id_becario", becario.id.ToString()},
-                            { "@legajo", becario.legajo},
-                            { "@alquila", becario.alquila.ToString() },
-                            { "@fecha_solicitud", becario.fecha_solicitud.ToShortDateString()},
-                            { "@aceptado", becario.aceptado_inicio?.ToString()??"NULL"},
-                            { "@puede_pagarle", becario.puede_pagarle?.ToString()??"NULL"},
-                            { "@activo", becario.activo.ToString()},
-                            { "@anio_beca", becario.anio_beca.ToString()},
-                            { "@id_becario_previo", becario.id_becario_previo?.ToString()??"NULL" },
-                            { "@id_usuario_mod", usuarioActual }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Modificar_Becario_SAE", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Ok(new BecariosSAE(respuesta.Rows[0]));
+                        if (becario.id != -1) return Ok(becario);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO BECARIO SAE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1619,38 +1728,33 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosSAEEconomica>> ModificarBecarioEconomica(int id, BecariosSAEEconomica economica)
+        public ActionResult<BecariosSAEEconomica> ModificarBecarioEconomica(int id, BecariosSAEEconomica economica)
         {
             try
             {
                 if (id != economica.id) return BadRequest();
 
-                if (await TienePermiso(52))
+                if ( TienePermiso(52))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserMod))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@id_economica", economica.id.ToString()},
-                            { "@id_becario", economica.becario.id.ToString()},
-                            { "@entrevista", economica.entrevista_realizada.ToString() },
-                            { "@modulos", economica.modulos_asignados.ToString() },
-                            { "@id_usuario_mod", usuarioActual }
-                        };
-                        //@id_economica int, @entrevista bit,@id_becario int, @modulos int,@id_usuario_mod int
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Modificar_Becario_Economica", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Ok(new BecariosSAEEconomica(respuesta.Rows[0]));
+                        economica = BecAdapter.ModificarBecarioEconomica(economica, idUserMod);
+
+                        if (economica.id != -1) return Ok(economica);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO BECARIO ECONOMICA");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1721,38 +1825,33 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosSAEInvestigacion>> ModificarBecarioInvestigacion(int id, BecariosSAEInvestigacion investiga)
+        public ActionResult<BecariosSAEInvestigacion> ModificarBecarioInvestigacion(int id,[FromBody] BecariosSAEInvestigacion investiga)
         {
             try
             {
                 if (id != investiga.id) return BadRequest();
 
-                if (await TienePermiso(52))
+                if ( TienePermiso(52))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserMod))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@id_investigacion", investiga.id.ToString()},
-                            { "@id_becario", investiga.becario.id.ToString()},
-                            { "@id_proyecto", investiga.proyecto_investigacion?.id.ToString()??"NULL" },
-                            { "@modulos", investiga.modulos_asignados.ToString() },
-                            { "@id_usuario_mod", usuarioActual }
-                        };
-                        //@id_economica int, @entrevista bit,@id_becario int, @modulos int,@id_usuario_mod int
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Modificar_Becario_Investigacion", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Ok(new BecariosSAEInvestigacion(respuesta.Rows[0]));
+                        investiga = BecAdapter.ModificarBecarioInvestigacion(investiga, idUserMod);
+
+                        if (investiga.id != -1) return Ok(investiga);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO BECARIO INVESTIGACION");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1826,37 +1925,33 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosSAEServicio>> ModificarBecarioServicio(int id, BecariosSAEServicio servicio)
+        public ActionResult<BecariosSAEServicio> ModificarBecarioServicio(int id, BecariosSAEServicio servicio)
         {
             try
             {
                 if (id != servicio.id) return BadRequest();
 
-                if (await TienePermiso(52))
+                if ( TienePermiso(52))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserMod))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@id_beca_servicio", servicio.id.ToString()},
-                            { "@id_becario", servicio.becario.id.ToString()},
-                            { "@id_servicio", servicio.servicio?.id.ToString()??"NULL" },
-                            { "@modulos", servicio.modulos_asignados.ToString() },
-                            { "@id_usuario_mod", usuarioActual }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Modificar_Becario_Servicio", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Ok(new BecariosSAEServicio(respuesta.Rows[0]));
+                        servicio = BecAdapter.ModificarBecarioServicio(servicio, idUserMod);
+
+                        if (servicio.id != -1) return Ok(servicio);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO BECARIO SERVICIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1909,41 +2004,33 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosNacionales>> ModificarBecarioNacional(int id, BecariosNacionales nacional)
+        public ActionResult<BecariosNacionales> ModificarBecarioNacional(int id, BecariosNacionales nacional)
         {
             try
             {
                 if (id != nacional.id) return BadRequest();
 
-                if (await TienePermiso(146))
+                if ( TienePermiso(146))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserMod))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@id_becario", nacional.id.ToString()},
-                            { "@legajo", nacional.legajo},
-                            { "@tipo_plan", nacional.tipo_plan.ToString() },
-                            { "@regular", nacional.regularizacion.ToString() },
-                            { "@cumplio", nacional.cumplimiento_servicio.ToString() },
-                            { "@anio_beca", nacional.anio_beca.ToString() },
-                            { "@activo", nacional.activo.ToString() },
-                            { "@id_usuario_mod", usuarioActual }
-                        };
+                        nacional = BecAdapter.ModificarBecarioNacional( nacional, idUserMod);
 
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Modificar_Becario_Nacional", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Ok(new BecariosNacionales(respuesta.Rows[0]));
+                        if (nacional.id != -1) return Ok(nacional);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO BECARIO NACIONAL");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1990,37 +2077,33 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<ProyectosInvestigacion>> ModificarProyecto(int id, ProyectosInvestigacion proyecto)
+        public ActionResult<ProyectosInvestigacion> ModificarProyecto(int id, ProyectosInvestigacion proyecto)
         {
             try
             {
                 if (id != proyecto.id) return BadRequest();
 
-                if (await TienePermiso(142))
+                if ( TienePermiso(142))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserMod))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@id_proyecto", proyecto.id.ToString()},
-                            { "@nombre", proyecto.nombre_proyecto_investigacion},
-                            { "@centro", proyecto.centro_investigacion.ToString() },
-                            { "@activo", proyecto.activo.ToString() },
-                        };
+                        proyecto = BecAdapter.ModificarProyecto(proyecto);
 
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Modificar_Proyecto_Investigacion", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Ok(new ProyectosInvestigacion(respuesta.Rows[0]));
+                        if (proyecto.id != -1) return Ok(proyecto);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO BECARIO NACIONAL");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2081,45 +2164,33 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<SituacionesAcademicas>> ModificarSituacionAcademica(int id, SituacionesAcademicas situacion)
+        public ActionResult<SituacionesAcademicas> ModificarSituacionAcademica(int id, SituacionesAcademicas situacion)
         {
             try
             {
                 if (id != situacion.id) return BadRequest();
 
-                if (await TienePermiso(124))
+                if ( TienePermiso(124))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserMod))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@id_situacion", situacion.id.ToString() },
-                            { "@legajo", situacion.legajo },
-                            { "@cursando", situacion.cursando.ToString() },
-                            { "@anio_situacion", situacion.anio_situacion.ToString() },
-                            { "@cant_cur_anterior", situacion.cant_materias_cursadas_anterior.ToString() },
-                            { "@cant_aprob_anterior", situacion.cant_materias_aprobadas_periodo_anterior.ToString() },
-                            { "@cant_cur", situacion.cant_materias_cursando.ToString() },
-                            { "@cant_aprob", situacion.cant_materias_aprobadas_total.ToString() },
-                            { "@prom_con_apla", GetDecimalForBase(situacion.prom_gral_con_aplazos) },
-                            { "@anio_ingre", situacion.ingreso.ToString() },
-                            { "@prom_sin_apla", GetDecimalForBase(situacion.prom_gral_sin_aplazos) },
-                            { "@id_usuario_mod", usuarioActual }
-                        };
+                        situacion = BecAdapter.ModificarSituacionAcademica(situacion,idUserMod);
 
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Modificar_Situacion_Academica", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Ok(new SituacionesAcademicas(respuesta.Rows[0]));
+                        if (situacion.id != -1) return Ok(situacion);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO SITUACION ACADEMICA");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2168,42 +2239,36 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpPost]
         [ActionName("CrearBecarioSAE")]
-        [ProducesResponseType(typeof(HorariosSAE), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(BecariosSAE), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<HorariosSAE>> CrearBecarioSAE(BecariosSAE becario)
+        public ActionResult<BecariosSAE> CrearBecarioSAE(BecariosSAE becario)
         {
             try
             {
-                if (await TienePermiso(51))
+                if ( TienePermiso(51))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@legajo", becario.legajo},
-                            { "@alquila", becario.alquila.ToString() },
-                            { "@fecha_solicitud", becario.fecha_solicitud.ToShortDateString()},
-                            { "@anio_beca", becario.anio_beca.ToString()},
-                            { "@id_becario_previo", becario.id_becario_previo?.ToString()??"NULL" },
-                            { "@id_usuario_alta", usuarioActual }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Crear_Becario_SAE", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Becario SAE Creado", new HorariosSAE(respuesta.Rows[0]));
+                        becario = BecAdapter.CrearBecario(becario, idUserCrea);
+                        if (becario.id != -1) return Created("Becario Creado", becario);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO BECARIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2254,32 +2319,30 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosSAEEconomica>> CrearBecarioEconomica(int id_becario)
+        public ActionResult<BecariosSAEEconomica> CrearBecarioEconomica(int id_becario)
         {
             try
             {
-                if (await TienePermiso(51))
+                if ( TienePermiso(51))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@id_becario", id_becario.ToString() },
-                            { "@id_usuario_alta", usuarioActual }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Crear_Becario_Economica", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Becario Economica Creado", new BecariosSAEEconomica(respuesta.Rows[0]));
+                        BecariosSAEEconomica becario = BecAdapter.CrearBecarioEconomica(id_becario, idUserCrea);
+                        if (becario.id != -1) return Created("Becario Creado", becario);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO BECARIO ECONOMICA");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2336,32 +2399,30 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosSAEInvestigacion>> CrearBecarioInvestigacion(int id_becario)
+        public ActionResult<BecariosSAEInvestigacion> CrearBecarioInvestigacion(int id_becario)
         {
             try
             {
-                if (await TienePermiso(51))
+                if ( TienePermiso(51))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@id_becario", id_becario.ToString() },
-                            { "@id_usuario_alta", usuarioActual }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Crear_Becario_Investigacion", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Becario de Investigacion Creado", new BecariosSAEInvestigacion(respuesta.Rows[0]));
+                        BecariosSAEInvestigacion becario = BecAdapter.CrearBecarioInvestigacion(id_becario, idUserCrea);
+                        if (becario.id != -1) return Created("Becario Creado", becario);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO BECARIO INVESTIGACION");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2421,39 +2482,37 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosSAEServicio>> CrearBecarioServicio(int id_becario)
+        public ActionResult<BecariosSAEServicio> CrearBecarioServicio(int id_becario)
         {
             try
             {
-                if (await TienePermiso(51))
+                if ( TienePermiso(51))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@id_becario", id_becario.ToString() },
-                            { "@id_usuario_alta", usuarioActual }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Crear_Becario_Servicio", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Becario de Servicio Creado", new BecariosSAEServicio(respuesta.Rows[0]));
+                        BecariosSAEServicio becario = BecAdapter.CrearBecarioServicio(id_becario, idUserCrea);
+                        if (becario.id != -1) return Created("Becario Creado", becario);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO BECARIO SERVICIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
         /// <summary>
         /// Permite crear un becario nacional
         /// </summary>
-        /// <param name="becarios">Es el becario que queremos crear, se envia en el Body</param>
+        /// <param name="becario">Es el becario que queremos crear, se envia en el Body</param>
         /// <returns>Un becario nacional creado en la base de datos o error</returns>
         /// <remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
@@ -2498,38 +2557,30 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<BecariosNacionales>> CrearBecarioNacional(BecariosNacionales becarios)
+        public ActionResult<BecariosNacionales> CrearBecarioNacional(BecariosNacionales becario)
         {
             try
             {
-                if (await TienePermiso(56))
+                if ( TienePermiso(56))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@legajo", becarios.legajo },
-                            { "@tipo_plan", becarios.tipo_plan.ToString() },
-                            { "@regular", becarios.regularizacion.ToString() },
-                            { "@cumplio", becarios.cumplimiento_servicio.ToString() },
-                            { "@anio_beca", becarios.anio_beca.ToString() },
-                            { "@activo", becarios.activo.ToString() },
-                            { "@id_usuario_alta", usuarioActual }
-                        };
-                        //@tipo_plan int,@regular bit, @cumplio bit, @anio_beca int, @activo bit,@id_usuario_alta int
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Crear_Becario_Nacional", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Becario Nacional Creado", new BecariosNacionales(respuesta.Rows[0]));
+                        becario = BecAdapter.CrearBecarioNacional(becario, idUserCrea);
+                        if (becario.id != -1) return Created("Becario Creado", becario);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO BECARIO NACIONAL");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2576,33 +2627,30 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<ProyectosInvestigacion>> CrearProyectoInvestigacion(ProyectosInvestigacion proyect)
+        public ActionResult<ProyectosInvestigacion> CrearProyectoInvestigacion(ProyectosInvestigacion proyect)
         {
             try
             {
-                if (await TienePermiso(141))
+                if ( TienePermiso(141))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@nombre", proyect.nombre_proyecto_investigacion },
-                            { "@activo", proyect.activo.ToString() },
-                            { "@centro_inv", proyect.centro_investigacion }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Crear_Proyecto_Investigacion", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Proyecto de Investigacion Creado", new ProyectosInvestigacion(respuesta.Rows[0]));
+                        proyect = BecAdapter.CrearProyecto(proyect);
+                        if (proyect.id != -1) return Created("Proyecto Creado", proyect);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO PROYECTO DE INVESTIGACION");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2663,42 +2711,30 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<SituacionesAcademicas>> CrearSituacionAcademica(SituacionesAcademicas situacion)
+        public ActionResult<SituacionesAcademicas> CrearSituacionAcademica(SituacionesAcademicas situacion)
         {
             try
             {
-                if (await TienePermiso(123))
+                if ( TienePermiso(123))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+                    if (userData != null &&
+                        userData.Length > 0 &&
+                        userData != "NO DATA" &&
+                        int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-
-                        Dictionary<string, string> parametros = new() {
-                            { "@legajo", situacion.legajo },
-                            { "@cursando", situacion.cursando.ToString() },
-                            { "@anio_situacion", situacion.anio_situacion.ToString() },
-                            { "@cant_cur_anterior", situacion.cant_materias_cursadas_anterior.ToString() },
-                            { "@cant_aprob_anterior", situacion.cant_materias_aprobadas_periodo_anterior.ToString() },
-                            { "@cant_cur", situacion.cant_materias_cursando.ToString() },
-                            { "@cant_aprob", situacion.cant_materias_aprobadas_total.ToString() },
-                            { "@prom_con_apla", GetDecimalForBase(situacion.prom_gral_con_aplazos) },
-                            { "@anio_ingre", situacion.ingreso.ToString() },
-                            { "@prom_sin_apla", GetDecimalForBase(situacion.prom_gral_sin_aplazos) },
-                            { "@id_usuario_alta", usuarioActual }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_BECAS_Crear_Situacion_Academica", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Situacion Academica Creada", new SituacionesAcademicas(respuesta.Rows[0]));
+                        situacion = BecAdapter.CrearSituacionAcademica(situacion,idUserCrea);
+                        if (situacion.id != -1) return Created("Situacion Creada", situacion);
+                        else return Conflict();
                     }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO SITUACION ACEDEMICA");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2707,22 +2743,12 @@ namespace API_WEB_SAE_6.Controllers
         /// </summary>
         /// <param name="id_funcion">Es la funcion que queremos validar </param>
         /// <returns> True = Tiene permisos || False = No tiene permisos </returns>
-        private async Task<bool> TienePermiso(int id_funcion)
+        private bool TienePermiso(int id_funcion)
         {
             string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
             if (userData == null || userData == "NO DATA") return false;
-
-            int id_perfil;
-            try { id_perfil = int.Parse(userData.Split(',')[1]); }
-            catch (Exception) { return false; }
-
-            PerfilesController p = new();
-            return await p.TienePermiso(_config, id_perfil, id_funcion);
-        }
-        private string GetDecimalForBase(decimal valor)
-        {
-            valor = Math.Round(valor * 100, 0);
-            return int.Parse(valor.ToString()).ToString();
+            if (int.TryParse(userData.Split(',')[1], out int id_perfil)) return UserAdapter.TienePermiso(id_funcion, id_perfil);
+            else return false;
         }
     }
 }

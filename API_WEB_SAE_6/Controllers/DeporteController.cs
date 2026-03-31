@@ -1,12 +1,10 @@
-﻿using API_WEB_SAE_6.Logs;
+﻿using API_WEB_SAE_6.Adapters;
+using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Data;
 using System.Security.Claims;
-using System.Security.Cryptography;
 
 namespace API_WEB_SAE_6.Controllers
 {
@@ -20,20 +18,21 @@ namespace API_WEB_SAE_6.Controllers
     public class DeporteController : Controller
     {
         /// <summary>
-        /// EN: The logger functions as a register of the exception that happen in the runtime. <br/>
-        /// ES: El logger funciona como el registro de excpciones que pasan en tiempo de ejecuccion <br/>
+        /// Es el adaptador de usuarios para consultar los permisos
         /// </summary>
-        private readonly Logger _logger = new();
-
-        private readonly IConfiguration _config;
+        private UsuarioAdapter UserAdapter = new();
+        /// <summary>
+        /// Es el adaptador con respecto a la base de datos para realizar llamadas
+        /// </summary>
+        private DeporteAdapter DeportAdapter = new();
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="config"></param>
-        public DeporteController(IConfiguration config)
-        {
-            _config = config;
-        }
+        private readonly string ControllerName = "DeporteController";
+        /// <summary>
+        /// 
+        /// </summary>
+        public DeporteController(){}
         /// <summary>
         /// Recupera todos los deportes
         /// </summary>
@@ -71,29 +70,24 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<Deportes>>> ObtenerDeportesCompleto()
+        public ActionResult<IEnumerable<Deportes>> ObtenerDeportesCompleto()
         {
             try
             {
-                if (await TienePermiso(20))
+                if (TienePermiso(20))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_DEPORTES_Listar_Deportes_Completo");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<Deportes>? listadoDeportes = DeportAdapter.ObtenerDeportesCompleto();
 
-                    List<Deportes> listadoDeportes = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        Deportes becario = new(row);
-                        listadoDeportes.Add(becario);
-                    }
+                    if (listadoDeportes == null) return Conflict();
+                    if (listadoDeportes.Count == 0) return NoContent();
+
                     return Ok(listadoDeportes);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO DEPORTES");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -134,30 +128,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<Deportes>>> ObtenerDeportesActivos()
+        public ActionResult<IEnumerable<Deportes>> ObtenerDeportesActivos()
         {
             try
             {
                 //El numero de funcion es: 20
-                if (await TienePermiso(20))
+                if (TienePermiso(20))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_DEPORTES_Listar_Deportes_Activo");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<Deportes>? listadoDeportes = DeportAdapter.ObtenerDeportesActivo();
 
-                    List<Deportes> listadoDeportes = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        Deportes becarios = new(row);
-                        listadoDeportes.Add(becarios);
-                    }
+                    if (listadoDeportes == null) return Conflict();
+                    if (listadoDeportes.Count == 0) return NoContent();
+
                     return Ok(listadoDeportes);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO DEPORTES ACTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -197,28 +186,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Deportes>> ObtenerDeportesXId(int id_deporte)
+        public ActionResult<Deportes> ObtenerDeportesXId(int id_deporte)
         {
             try
             {
-                if (await TienePermiso(20))
+                if (TienePermiso(20))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_deporte", id_deporte.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Deporte_Id", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    Deportes becario = new(respuesta.Rows[0]);
-                    return Ok(becario);
+                    Deportes? depor = DeportAdapter.ObtenerDeportesXId(id_deporte);
+                    if (depor == null) return Conflict();
+                    if (depor.id == -1) return NoContent();
+                    else return Ok(depor);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO DEPORTES");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -261,29 +244,24 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<EspaciosDeportivos>>> ObtenerEspDeportivoCompleto()
+        public ActionResult<IEnumerable<EspaciosDeportivos>> ObtenerEspDeportivoCompleto()
         {
             try
             {
-                if (await TienePermiso(42))
+                if (TienePermiso(42))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_DEPORTES_Listar_Espacios_Deportivos_Completo");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<EspaciosDeportivos>? listadoDeportes = DeportAdapter.ObtenerEspaciosDeporCompleto();
 
-                    List<EspaciosDeportivos> listadoEspacios = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        EspaciosDeportivos espacio = new(row);
-                        listadoEspacios.Add(espacio);
-                    }
-                    return Ok(listadoEspacios);
+                    if (listadoDeportes == null) return Conflict();
+                    if (listadoDeportes.Count == 0) return NoContent();
+
+                    return Ok(listadoDeportes);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO ESPACIOS DEPORTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -326,29 +304,24 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<EspaciosDeportivos>>> ObtenerEspDeportivoActivos()
+        public ActionResult<IEnumerable<EspaciosDeportivos>> ObtenerEspDeportivoActivos()
         {
             try
             {
-                if (await TienePermiso(42))
+                if (TienePermiso(42))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_DEPORTES_Listar_Espacios_Deportivos_Activo");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<EspaciosDeportivos>? listadoDeportes = DeportAdapter.ObtenerEspaciosDeporActivos();
 
-                    List<EspaciosDeportivos> listadoEspacio = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        EspaciosDeportivos espacios = new(row);
-                        listadoEspacio.Add(espacios);
-                    }
-                    return Ok(listadoEspacio);
+                    if (listadoDeportes == null) return Conflict();
+                    if (listadoDeportes.Count == 0) return NoContent();
+
+                    return Ok(listadoDeportes);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO ESPACIOS DEPORTIVOS ACTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -391,28 +364,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<EspaciosDeportivos>> ObtenerEspDeportivoXId(int id_espacio)
+        public ActionResult<EspaciosDeportivos> ObtenerEspDeportivoXId(int id_espacio)
         {
             try
             {
-                if (await TienePermiso(42))
+                if (TienePermiso(42))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_espacio", id_espacio.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Espacio_Deportivos_Id", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    EspaciosDeportivos espacio = new(respuesta.Rows[0]);
-                    return Ok(espacio);
+                    EspaciosDeportivos? espacio = DeportAdapter.ObtenerEspaciosDeportXId(id_espacio);
+                    if (espacio == null) return Conflict();
+                    if (espacio.id == -1) return NoContent();
+                    else return Ok(espacio);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO DOCENTES DEPORTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -455,29 +422,24 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<DocentesDeportivos>>> ObtenerDocentesDeportivos()
+        public ActionResult<IEnumerable<DocentesDeportivos>> ObtenerDocentesDeportivos()
         {
             try
             {
-                if (await TienePermiso(36))
+                if (TienePermiso(36))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_DEPORTES_Listar_Docente_Deporte_Completo");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<DocentesDeportivos>? listadoDeportes = DeportAdapter.ObtenerDocentesCompletos();
 
-                    List<DocentesDeportivos> listadoDocentes = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        DocentesDeportivos docentes = new(row);
-                        listadoDocentes.Add(docentes);
-                    }
-                    return Ok(listadoDocentes);
+                    if (listadoDeportes == null) return Conflict();
+                    if (listadoDeportes.Count == 0) return NoContent();
+
+                    return Ok(listadoDeportes);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO DOCENTES DEPORTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -520,29 +482,24 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<DocentesDeportivos>>> ObtenerDocentesDeportivosActivos()
+        public ActionResult<IEnumerable<DocentesDeportivos>> ObtenerDocentesDeportivosActivos()
         {
             try
             {
-                if (await TienePermiso(36))
+                if (TienePermiso(36))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_DEPORTES_Listar_Docente_Deporte_Activos");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<DocentesDeportivos>? listadoDeportes = DeportAdapter.ObtenerDocentesActivos();
 
-                    List<DocentesDeportivos> listadoDeportivo = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        DocentesDeportivos docente = new(row);
-                        listadoDeportivo.Add(docente);
-                    }
-                    return Ok(listadoDeportivo);
+                    if (listadoDeportes == null) return Conflict();
+                    if (listadoDeportes.Count == 0) return NoContent();
+
+                    return Ok(listadoDeportes);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO ESPACIOS DEPORTIVOS ACTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -584,28 +541,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<DocentesDeportivos>> ObtenerDocenteDeportivoXCuil(string cuil)
+        public ActionResult<DocentesDeportivos> ObtenerDocenteDeportivoXCuil(string cuil)
         {
             try
             {
-                if (await TienePermiso(36))
+                if (TienePermiso(36))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@cuil_doc", cuil }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Docente_Deportivo_Cuil", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    DocentesDeportivos docente = new(respuesta.Rows[0]);
-                    return Ok(docente);
+                    DocentesDeportivos? docente = DeportAdapter.ObtenerDocentesXCUIL(cuil);
+                    if (docente == null) return Conflict();
+                    if (docente.cuil == "") return NoContent();
+                    else return Ok(docente);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO DOCENTE DEPORTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -649,29 +600,24 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<Deportista>>> ObtenerDeportistasCompleto()
+        public ActionResult<IEnumerable<Deportista>> ObtenerDeportistasCompleto()
         {
             try
             {
-                if (await TienePermiso(33))
+                if (TienePermiso(33))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_DEPORTES_Listar_Deportistas_Completo");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<Deportista>? listadoDeportistas = DeportAdapter.ObtenerDeportistasCompletos();
 
-                    List<Deportista> listadoDeportistas = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        Deportista deportista = new(row);
-                        listadoDeportistas.Add(deportista);
-                    }
+                    if (listadoDeportistas == null) return Conflict();
+                    if (listadoDeportistas.Count == 0) return NoContent();
+
                     return Ok(listadoDeportistas);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO DEPORTISTAS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -715,29 +661,24 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<Deportista>>> ObtenerDeportistasHabilitados()
+        public ActionResult<IEnumerable<Deportista>> ObtenerDeportistasHabilitados()
         {
             try
             {
-                if (await TienePermiso(33))
+                if (TienePermiso(33))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_DEPORTES_Listar_Deportistas_Habilitados");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<Deportista>? listadoDeportistas = DeportAdapter.ObtenerDeportistasActivos();
 
-                    List<Deportista> listadoDeportistas = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        Deportista deportista = new(row);
-                        listadoDeportistas.Add(deportista);
-                    }
+                    if (listadoDeportistas == null) return Conflict();
+                    if (listadoDeportistas.Count == 0) return NoContent();
+
                     return Ok(listadoDeportistas);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO DEPORTISTAS HABILITADOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -780,28 +721,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Deportista>> ObtenerDeportistasXId(int id_deportista)
+        public ActionResult<Deportista> ObtenerDeportistasXId(int id_deportista)
         {
             try
             {
-                if (await TienePermiso(33))
+                if (TienePermiso(33))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_deportista", id_deportista.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Deportistas_Id", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    Deportista docente = new(respuesta.Rows[0]);
-                    return Ok(docente);
+                    Deportista? depor = DeportAdapter.ObtenerDeportistasXId(id_deportista);
+                    if (depor == null) return Conflict();
+                    if (depor.id == -1) return NoContent();
+                    else return Ok(depor);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO DEPORTISTA POR ID");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -844,28 +779,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Deportista>> ObtenerDeportistasXLegajo(string legajo)
+        public ActionResult<Deportista> ObtenerDeportistasXLegajo(string legajo)
         {
             try
             {
-                if (await TienePermiso(33))
+                if (TienePermiso(33))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@legajo", legajo }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Deportistas_Legajo", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    Deportista docente = new(respuesta.Rows[0]);
-                    return Ok(docente);
+                    Deportista? depor = DeportAdapter.ObtenerDeportistasXLegajo(legajo);
+                    if (depor == null) return Conflict();
+                    if (depor.id == -1) return NoContent();
+                    else return Ok(depor);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO DEPORTISTA POR LEGAJO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -910,33 +839,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<Deportista>>> ObtenerDeportistasXDeporte(int id_deporte)
+        public ActionResult<IEnumerable<Deportista>> ObtenerDeportistasXDeporte(int id_deporte)
         {
             try
             {
-                if (await TienePermiso(33))
+                if (TienePermiso(33))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_deporte", id_deporte.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Listar_Deportistas_Deporte", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<Deportista> listadoDeportistas = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        Deportista deportista = new(row);
-                        listadoDeportistas.Add(deportista);
-                    }
-                    return Ok(listadoDeportistas);
+                    List<Deportista>? depor = DeportAdapter.ObtenerDeportistasXDeporte(id_deporte);
+                    if (depor == null) return Conflict();
+                    if (depor.Count == 0) return NoContent();
+                    else return Ok(depor);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO DEPORTISTAS EN DEPORTE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -979,33 +897,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<DeporteXInscripcion>>> ObtenerInscripcionesXDeportista(int id_deportista)
+        public ActionResult<IEnumerable<DeporteXInscripcion>> ObtenerInscripcionesXDeportista(int id_deportista)
         {
             try
             {
-                if (await TienePermiso(32))
+                if (TienePermiso(32))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_deportista", id_deportista.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Inscripciones_Deportista", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<DeporteXInscripcion> listadoInscripciones = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        DeporteXInscripcion deportista = new(row);
-                        listadoInscripciones.Add(deportista);
-                    }
-                    return Ok(listadoInscripciones);
+                    List<DeporteXInscripcion>? listadoInscripciones = DeportAdapter.ObtenerInscriptosXDeportista(id_deportista);
+                    if (listadoInscripciones == null) return Conflict();
+                    if (listadoInscripciones.Count == 0) return NoContent();
+                    else return Ok(listadoInscripciones);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO INSCRIPCIONES A DEPORTES");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1054,29 +961,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<TorneoDeportivo>>> ObtenerTorneosDeportivos()
+        public ActionResult<IEnumerable<TorneoDeportivo>> ObtenerTorneosDeportivos()
         {
             try
             {
-                if (await TienePermiso(23))
+                if (TienePermiso(23))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_DEPORTES_Listar_Torneos_Completo");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<TorneoDeportivo> listadoTorneos = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        TorneoDeportivo torneos = new(row);
-                        listadoTorneos.Add(torneos);
-                    }
-                    return Ok(listadoTorneos);
+                    List<TorneoDeportivo>? listadoTorneos = DeportAdapter.ObtenerTorneosCompleto();
+                    if (listadoTorneos == null) return Conflict();
+                    if (listadoTorneos.Count == 0) return NoContent();
+                    else return Ok(listadoTorneos);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO TORNEOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1125,29 +1025,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<TorneoDeportivo>>> ObtenerTorneosActivos()
+        public ActionResult<IEnumerable<TorneoDeportivo>> ObtenerTorneosActivos()
         {
             try
             {
-                if (await TienePermiso(23))
+                if (TienePermiso(23))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_DEPORTES_Listar_Torneos_Activos");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<TorneoDeportivo> listadoTorneos = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        TorneoDeportivo torneos = new(row);
-                        listadoTorneos.Add(torneos);
-                    }
-                    return Ok(listadoTorneos);
+                    List<TorneoDeportivo>? listadoTorneos = DeportAdapter.ObtenerTorneosActivos();
+                    if (listadoTorneos == null) return Conflict();
+                    if (listadoTorneos.Count == 0) return NoContent();
+                    else return Ok(listadoTorneos);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO TORNEOS ACTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1195,28 +1088,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<TorneoDeportivo>> ObtenerTorneosXId(int id_torneo)
+        public ActionResult<TorneoDeportivo> ObtenerTorneosXId(int id_torneo)
         {
             try
             {
-                if (await TienePermiso(23))
+                if (TienePermiso(23))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_torneo", id_torneo.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Torneos_Id", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    TorneoDeportivo torneo = new(respuesta.Rows[0]);
-                    return Ok(torneo);
+                    TorneoDeportivo? depor = DeportAdapter.ObtenerTorneoXId(id_torneo);
+                    if (depor == null) return Conflict();
+                    if (depor.id == -1) return NoContent();
+                    else return Ok(depor);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO TORNEO POR ID");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1266,33 +1153,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<TorneoDeportivo>>> ObtenerTorneosXDeporte(int id_deporte)
+        public ActionResult<IEnumerable<TorneoDeportivo>> ObtenerTorneosXDeporte(int id_deporte)
         {
             try
             {
-                if (await TienePermiso(23))
+                if (TienePermiso(23))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_deporte", id_deporte.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Torneos_Deportes", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<TorneoDeportivo> listadoTorneos = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        TorneoDeportivo torneos = new(row);
-                        listadoTorneos.Add(torneos);
-                    }
-                    return Ok(listadoTorneos);
+                    List<TorneoDeportivo>? listadoTorneos = DeportAdapter.ObtenerTorneosXDeporte(id_deporte);
+                    if (listadoTorneos == null) return Conflict();
+                    if (listadoTorneos.Count == 0) return NoContent();
+                    else return Ok(listadoTorneos);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO TORNEO POR DEPORTE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1337,34 +1213,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<Deportista>>> ObtenerDeportistasXTorneo(int id_torneo)
+        public ActionResult<IEnumerable<Deportista>> ObtenerDeportistasXTorneo(int id_torneo)
         {
             try
             {
-                if (await TienePermiso(33))
+                if (TienePermiso(33))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_torneo", id_torneo.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Inscriptos_Torneo", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-
-                    List<Deportista> listadoDeportista = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        Deportista deportista = new(row);
-                        listadoDeportista.Add(deportista);
-                    }
-                    return Ok(listadoDeportista);
+                    List<Deportista>? listadoTorneos = DeportAdapter.ObtenerDeportistasXTorneo(id_torneo);
+                    if (listadoTorneos == null) return Conflict();
+                    if (listadoTorneos.Count == 0) return NoContent();
+                    else return Ok(listadoTorneos);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO DEPORTISTAS POR TORNEO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1407,33 +1271,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<TorneosXInscripcion>>> ObtenerInscTorneoXDeportista(int id_deportista)
+        public ActionResult<IEnumerable<TorneosXInscripcion>> ObtenerInscTorneoXDeportista(int id_deportista)
         {
             try
             {
-                if (await TienePermiso(32))
+                if (TienePermiso(32))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_deportista", id_deportista.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Torneos_Deportista", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<TorneosXInscripcion> listadoDeportista = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        TorneosXInscripcion deportista = new(row);
-                        listadoDeportista.Add(deportista);
-                    }
-                    return Ok(listadoDeportista);
+                    List<TorneosXInscripcion>? listadoTorneos = DeportAdapter.ObtenerInscTorneoXDeportista(id_deportista);
+                    if (listadoTorneos == null) return Conflict();
+                    if (listadoTorneos.Count == 0) return NoContent();
+                    else return Ok(listadoTorneos);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO INSCRIPCIONES POR DEPORTES");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1482,29 +1335,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<HorarioDeportes>>> ObtenerHorariosCompleto()
+        public ActionResult<IEnumerable<HorarioDeportes>> ObtenerHorariosCompleto()
         {
             try
             {
-                if (await TienePermiso(39))
+                if (TienePermiso(39))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_DEPORTES_Listar_Horarios_Completo");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<HorarioDeportes> listadoHorarios = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        HorarioDeportes horarios = new(row);
-                        listadoHorarios.Add(horarios);
-                    }
-                    return Ok(listadoHorarios);
+                    List<HorarioDeportes>? listadoHorarios = DeportAdapter.ObtenerHorariosCompleto();
+                    if (listadoHorarios == null) return Conflict();
+                    if (listadoHorarios.Count == 0) return NoContent();
+                    else return Ok(listadoHorarios);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO HORARIOS COMPLETO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1553,29 +1399,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<HorarioDeportes>>> ObtenerHorariosActivos()
+        public ActionResult<IEnumerable<HorarioDeportes>> ObtenerHorariosActivos()
         {
             try
             {
-                if (await TienePermiso(39))
+                if (TienePermiso(39))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_DEPORTES_Listar_Horarios_Activos");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<HorarioDeportes> listadoHorarios = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        HorarioDeportes horarios = new(row);
-                        listadoHorarios.Add(horarios);
-                    }
-                    return Ok(listadoHorarios);
+                    List<HorarioDeportes>? listadoHorarios = DeportAdapter.ObtenerHorariosActivo();
+                    if (listadoHorarios == null) return Conflict();
+                    if (listadoHorarios.Count == 0) return NoContent();
+                    else return Ok(listadoHorarios);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO HORARIOS ACTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1623,33 +1462,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<HorarioDeportes>>> ObtenerHorariosXId(int id_horario)
+        public ActionResult<IEnumerable<HorarioDeportes>> ObtenerHorariosXId(int id_horario)
         {
             try
             {
-                if (await TienePermiso(39))
+                if (TienePermiso(39))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_horario", id_horario.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Horarios_Id", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<HorarioDeportes> listadoHorario = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        HorarioDeportes horario = new(row);
-                        listadoHorario.Add(horario);
-                    }
-                    return Ok(listadoHorario);
+                    HorarioDeportes? depor = DeportAdapter.ObtenerHorarioXId(id_horario);
+                    if (depor == null) return Conflict();
+                    if (depor.id == -1) return NoContent();
+                    else return Ok(depor);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO HORARIO POR ID");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1699,33 +1527,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<HorarioDeportes>>> ObtenerHorariosXEspacio(int id_espacio)
+        public ActionResult<IEnumerable<HorarioDeportes>> ObtenerHorariosXEspacio(int id_espacio)
         {
             try
             {
-                if (await TienePermiso(39))
+                if (TienePermiso(39))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_espacio", id_espacio.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Horarios_Espacio", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<HorarioDeportes> listadoHorario = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        HorarioDeportes horario = new(row);
-                        listadoHorario.Add(horario);
-                    }
-                    return Ok(listadoHorario);
+                    List<HorarioDeportes>? listadoHorarios = DeportAdapter.ObtenerHorariosXEspacio(id_espacio);
+                    if (listadoHorarios == null) return Conflict();
+                    if (listadoHorarios.Count == 0) return NoContent();
+                    else return Ok(listadoHorarios);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO HORARIO POR ID ESPACIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1775,33 +1592,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<HorarioDeportes>>> ObtenerHorariosXDeporte(int id_deporte)
+        public ActionResult<IEnumerable<HorarioDeportes>> ObtenerHorariosXDeporte(int id_deporte)
         {
             try
             {
-                if (await TienePermiso(39))
+                if (TienePermiso(39))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_deporte", id_deporte.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Horarios_Deporte", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<HorarioDeportes> listadoHorario = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        HorarioDeportes horario = new(row);
-                        listadoHorario.Add(horario);
-                    }
-                    return Ok(listadoHorario);
+                    List<HorarioDeportes>? listadoHorarios = DeportAdapter.ObtenerHorariosXDeporte(id_deporte);
+                    if (listadoHorarios == null) return Conflict();
+                    if (listadoHorarios.Count == 0) return NoContent();
+                    else return Ok(listadoHorarios);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO HORARIO POR ID DEPORTE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1851,33 +1657,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<HorarioDeportes>>> ObtenerHorariosXCUIL(string cuil)
+        public ActionResult<IEnumerable<HorarioDeportes>> ObtenerHorariosXCUIL(string cuil)
         {
             try
             {
-                if (await TienePermiso(39))
+                if (TienePermiso(39))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@cuil", cuil }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Buscar_Horarios_Cuil", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<HorarioDeportes> listadoHorario = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        HorarioDeportes horario = new(row);
-                        listadoHorario.Add(horario);
-                    }
-                    return Ok(listadoHorario);
+                    List<HorarioDeportes>? listadoHorarios = DeportAdapter.ObtenerHorariosXCUIL(cuil);
+                    if (listadoHorarios == null) return Conflict();
+                    if (listadoHorarios.Count == 0) return NoContent();
+                    else return Ok(listadoHorarios);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO HORARIO POR CUIL DOCENTE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1922,35 +1717,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Deportes>> ModificarDeporte(int id, Deportes deporte)
+        public ActionResult<Deportes> ModificarDeporte(int id, Deportes deporte)
         {
             try
             {
                 if (id != deporte.id) return BadRequest();
 
-                if (await TienePermiso(19))
+                if (TienePermiso(19))
                 {
-                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    Dictionary<string, string> parametros = new() {
-
-                        { "@id_deporte",deporte.id.ToString() },
-                        { "@nombre",deporte.nombre.ToString() },
-                        { "@activo",deporte.activo.ToString() }
-                    };
-
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Modificar_Deporte", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(new Deportes(respuesta.Rows[0]));
+                    deporte = DeportAdapter.ModificarDeporte(deporte);
+                    if (deporte.id != -1) return Ok(deporte);
+                    else return Conflict();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO DEPORTE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1999,37 +1782,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<EspaciosDeportivos>> ModificarEspacioDeportivo(int id, EspaciosDeportivos espacio)
+        public ActionResult<EspaciosDeportivos> ModificarEspacioDeportivo(int id, EspaciosDeportivos espacio)
         {
             try
             {
                 if (id != espacio.id) return BadRequest();
 
-                if (await TienePermiso(41))
+                if (TienePermiso(41))
                 {
-                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    Dictionary<string, string> parametros = new() {
-
-                        { "@id_espacio",espacio.id.ToString() },
-                        { "@nombre",espacio.nombre.ToString() },
-                        { "@activo",espacio.activo.ToString() },
-                        { "@domicilio",espacio.activo.ToString() },
-                        { "@url_maps",espacio.activo.ToString() }
-                    };
-
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Modificar_Espacio_Deportivo", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(new EspaciosDeportivos(respuesta.Rows[0]));
+                    espacio = DeportAdapter.ModificarEspacioDeportivo(espacio);
+                    if (espacio.id != -1) return Ok(espacio);
+                    else return Conflict();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO ESPACIO DEPORTIVO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2078,38 +1847,31 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<DocentesDeportivos>> ModificarDocenteDeportivo(string cuil, DocentesDeportivos docente)
+        public ActionResult<DocentesDeportivos> ModificarDocenteDeportivo(string cuil, DocentesDeportivos docente)
         {
             try
             {
                 if (cuil != docente.cuil) return BadRequest();
 
-                if (await TienePermiso(35))
+                if (TienePermiso(35))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    Dictionary<string, string> parametros = new() {
-
-                        { "@cuil_doc",docente.cuil },
-                        { "@nombres",docente.nombres },
-                        { "@apellidos",docente.apellidos },
-                        { "@activo",docente.activo.ToString() },
-                        { "@fecha_nacimiento",docente.fecha_nacimiento.ToString() },
-                        { "@id_usuario_mod",usuarioActual }
-                    };
-
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Modificar_Docente_Deportivo", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(new DocentesDeportivos(respuesta.Rows[0]));
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        docente = DeportAdapter.ModificarDocente(docente, idUserMod);
+                        if (docente.cuil != "") return Ok(docente);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO DOCENTE DEPORTIVO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2159,37 +1921,31 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Deportista>> ModificarDeportista(int id, Deportista deportista)
+        public ActionResult<Deportista> ModificarDeportista(int id, Deportista deportista)
         {
             try
             {
                 if (id != deportista.id) return BadRequest();
 
-                if (await TienePermiso(29))
+                if (TienePermiso(29))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    Dictionary<string, string> parametros = new() {
-
-                        { "@id_deportista",deportista.id.ToString() },
-                        { "@legajo",deportista.legajo },
-                        { "@habilitado",deportista.habilitado_deporte.ToString() },
-                        { "@vencimiento_ficha",deportista.vencimiento_ficha.ToString() },
-                        { "@id_usuario_mod",usuarioActual }
-                    };
-
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Modificar_Deportista", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(new Deportista(respuesta.Rows[0]));
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        deportista = DeportAdapter.ModificarDeportista(deportista, idUserMod);
+                        if (deportista.id != -1) return Ok(deportista);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO DEPORTISTA");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2250,41 +2006,31 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<TorneoDeportivo>> ModificarTorneo(int id, TorneoDeportivo torneo)
+        public ActionResult<TorneoDeportivo> ModificarTorneo(int id, TorneoDeportivo torneo)
         {
             try
             {
                 if (id != torneo.id) return BadRequest();
 
-                if (await TienePermiso(22))
+                if (TienePermiso(22))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    Dictionary<string, string> parametros = new() {
-
-                        { "@id_torneo",torneo.id.ToString() },
-                        { "@nombre_torneo",torneo.nombre_torneo },
-                        { "@fecha_ini",torneo.fecha_inicio.ToString() },
-                        { "@fecha_fin",torneo.fecha_fin.ToString() },
-                        { "@fecha_limite",torneo.fecha_limite_inscripcion.ToString() },
-                        { "@activo",torneo.activo.ToString() },
-                        { "@id_deporte",torneo.id_deporte.ToString()},
-                        { "@cuil_docente",torneo.cuil_responsable },
-                        { "@cupo",torneo.cupo_jugadores.ToString()},
-                        { "@id_usuario_mod",usuarioActual }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Modificar_Torneo", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(new TorneoDeportivo(respuesta.Rows[0]));
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        torneo = DeportAdapter.ModificarTorneo(torneo, idUserMod);
+                        if (torneo.id != -1) return Ok(torneo);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO TORNEO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2345,39 +2091,31 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<HorarioDeportes>> ModificarHorario(int id, HorarioDeportes horario)
+        public ActionResult<HorarioDeportes> ModificarHorario(int id, HorarioDeportes horario)
         {
             try
             {
                 if (id != horario.id) return BadRequest();
 
-                if (await TienePermiso(38))
+                if (TienePermiso(38))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    Dictionary<string, string> parametros = new() {
-
-                        { "@id_horario",horario.id.ToString() },
-                        { "@id_espacio",horario.id_espacio_deportivo.ToString()},
-                        { "@id_deporte",horario.id_deporte.ToString() },
-                        { "@hora_ini",horario.hora_inicio },
-                        { "@hora_fin",horario.hora_fin },
-                        { "@activo",horario.activo.ToString() },
-                        { "@cuil_doc",horario.cuil_docente},
-                        { "@dia",horario.dia.ToString()}
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Modificar_Horario", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(new HorarioDeportes(respuesta.Rows[0]));
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        horario = DeportAdapter.ModificarHorario(horario);
+                        if (horario.id != -1) return Ok(horario);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO HORARIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2421,34 +2159,26 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Deportes>> CrearDeporte([FromBody] Deportes deporte)
+        public ActionResult<Deportes> CrearDeporte([FromBody] Deportes deporte)
         {
             try
             {
-                if (await TienePermiso(18))
+                if (TienePermiso(18))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            {"@nombre", deporte.nombre },
-                            {"@activo", deporte.activo.ToString() }
-                        };
-
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Crear_Deporte", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Deporte Creado", new Deportes(respuesta.Rows[0]));
+                        deporte = DeportAdapter.CrearDeporte(deporte);
+                        if (deporte.id != -1) return Created("Deporte Creado", deporte);
+                        else return Conflict();
                     }
-
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO DEPORTE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2497,34 +2227,29 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<Deportista>> CrearDeportista([FromBody] Deportista deportista)
+        public ActionResult<Deportista> CrearDeportista([FromBody] Deportista deportista)
         {
             try
             {
-                if (await TienePermiso(28))
+                if (TienePermiso(28))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            {"@legajo", deportista.legajo },
-                            {"@id_usuario_alta", usuarioActual }
-                        };
-
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Crear_Deportista", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Deportista Creado", new Deportista(respuesta.Rows[0]));
+                        deportista = DeportAdapter.CrearDeportista(deportista.legajo, idUserCrea);
+                        if (deportista.id != -1) return Created("Deportista Creado", deportista);
+                        else return Conflict();
                     }
-
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO DEPORTISTA");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2572,37 +2297,29 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<DocentesDeportivos>> CrearDocenteDeportivo([FromBody] DocentesDeportivos docente)
+        public ActionResult<DocentesDeportivos> CrearDocenteDeportivo([FromBody] DocentesDeportivos docente)
         {
             try
             {
-                if (await TienePermiso(28))
+                if (TienePermiso(28))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            {"@cuil_doc", docente.cuil },
-                            {"@nombres", docente.nombres },
-                            {"@apellidos", docente.apellidos },
-                            {"@activo", docente.activo.ToString() },
-                            {"@fecha_nacimiento", docente.fecha_nacimiento.ToString() },
-                            {"@id_usuario_alta", usuarioActual }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Crear_Docente_Deportivo", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Docente Deportivo Creado", new DocentesDeportivos(respuesta.Rows[0]));
+                        docente = DeportAdapter.CrearDocente(docente, idUserCrea);
+                        if (docente.cuil != "") return Created("Docente Creado", docente);
+                        else return Conflict();
                     }
-
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO DOCENTE DEPORTIVO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2650,36 +2367,21 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<EspaciosDeportivos>> CrearEspacioDeportivo([FromBody] EspaciosDeportivos espacio)
+        public ActionResult<EspaciosDeportivos> CrearEspacioDeportivo([FromBody] EspaciosDeportivos espacio)
         {
             try
             {
-                if (await TienePermiso(40))
+                if (TienePermiso(40))
                 {
-                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
-                    {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            {"@nombre", espacio.nombre },
-                            {"@domicilio", espacio.domicilio },
-                            {"@activo", espacio.activo.ToString() },
-                            {"@url_maps", espacio.url_maps },
-                        };
-
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Crear_Espacio_Deportivo", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Espacio Deportivo Creado", new EspaciosDeportivos(respuesta.Rows[0]));
-                    }
-
+                    espacio = DeportAdapter.CrearEspacioDeportivo(espacio);
+                    if (espacio.id != -1) return Created("Espacio Creado", espacio);
+                    else return Conflict();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO ESPACIO DEPORTIVO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2739,38 +2441,21 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<HorarioDeportes>> CrearHorarioDeportivo([FromBody] HorarioDeportes horario)
+        public ActionResult<HorarioDeportes> CrearHorarioDeportivo([FromBody] HorarioDeportes horario)
         {
             try
             {
-                if (await TienePermiso(37))
+                if (TienePermiso(37))
                 {
-                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
-                    {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            {"@id_espacio", horario.id_espacio_deportivo.ToString() },
-                            {"@id_deporte", horario.id_deporte.ToString() },
-                            {"@hora_ini", horario.hora_inicio.ToString() },
-                            {"@hora_fin", horario.hora_fin.ToString() },
-                            {"@activo", horario.activo.ToString() },
-                            {"@cuil_doc", horario.cuil_docente.ToString() },
-                            {"@dia", horario.dia.ToString() },
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Crear_Horario_Deporte", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Horario Deportivo Creado", new HorarioDeportes(respuesta.Rows[0]));
-                    }
-
+                    horario = DeportAdapter.CrearHorario(horario);
+                    if (horario.id != -1) return Created("Horario Creado", horario);
+                    else return Conflict();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO HORARIO DEPORTIVO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2828,40 +2513,29 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<TorneoDeportivo>> CrearTorneo([FromBody] TorneoDeportivo torneo)
+        public ActionResult<TorneoDeportivo> CrearTorneo([FromBody] TorneoDeportivo torneo)
         {
             try
             {
-                if (await TienePermiso(21))
+                if (TienePermiso(21))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            {"@nombre_torneo", torneo.nombre_torneo },
-                            {"@fecha_ini", torneo.fecha_inicio.ToString() },
-                            {"@fecha_fin", torneo.fecha_fin.ToString() },
-                            {"@fecha_limite", torneo.fecha_limite_inscripcion.ToString() },
-                            {"@activo", torneo.activo.ToString() },
-                            {"@id_deporte", torneo.id_deporte.ToString() },
-                            {"@cuil_docente", torneo.cuil_responsable },
-                            {"@cupo", torneo.cupo_jugadores.ToString() },
-                            {"@id_usuario_alta", usuarioActual }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Crear_Torneo", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Torneo Creado", new TorneoDeportivo(respuesta.Rows[0]));
+                        torneo = DeportAdapter.CrearTorneo(torneo, idUserCrea);
+                        if (torneo.id != -1) return Created("Torneo Creado", torneo);
+                        else return Conflict();
                     }
-
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO TORNEO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2908,33 +2582,21 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<TorneosXInscripcion>> CrearInscripcionTorneo(int id_torneo, int id_deportista)
+        public ActionResult<TorneosXInscripcion> CrearInscripcionTorneo(int id_torneo, int id_deportista)
         {
             try
             {
-                if (await TienePermiso(24))
+                if (TienePermiso(24))
                 {
-                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
-                    {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            {"@id_torneo", id_torneo.ToString() },
-                            {"@id_inscripto", id_deportista.ToString() },
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Crear_Inscripcion_Torneo", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Inscripcion a torneo Creado", new TorneosXInscripcion(respuesta.Rows[0]));
-                    }
-
+                    TorneosXInscripcion insc = DeportAdapter.CrearInscripcionTorneo(id_torneo, id_deportista);
+                    if (insc.id != -1) return Created("Inscripcion Creada", insc);
+                    else return Conflict();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO INSCRIPCION A TORNEO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -2979,33 +2641,21 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<DeporteXInscripcion>> CrearInscripcionDeporte(int id_deporte, int id_deportista)
+        public ActionResult<DeporteXInscripcion> CrearInscripcionDeporte(int id_deporte, int id_deportista)
         {
             try
             {
-                if (await TienePermiso(30))
+                if (TienePermiso(30))
                 {
-                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
-                    {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            {"@id_deporte", id_deporte.ToString() },
-                            {"@id_inscripto", id_deportista.ToString() },
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Crear_Inscripcion_Deporte", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Inscripcion a deporte Creado", new DeporteXInscripcion(respuesta.Rows[0]));
-                    }
-
+                    DeporteXInscripcion insc = DeportAdapter.CrearInscripcionDeporte(id_deporte, id_deportista);
+                    if (insc.id != -1) return Created("Inscripcion Creada", insc);
+                    else return Conflict();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO INSCRIPCION A DEPORTE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -3041,37 +2691,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> EliminarHorarioDeportivo(int id)
+        public ActionResult<string> EliminarHorarioDeportivo(int id)
         {
             try
             {
-                if (await TienePermiso(147))
+                if (TienePermiso(147))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        Dictionary<string, string> parametros = new() {
-                           { "@id_horario",id.ToString() }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Eliminar_Horario_Deportivo", parametros);
-
-                        if (respuesta.Rows.Count > 0)
-                        {
-                            if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                            else return Conflict(new HorarioDeportes(respuesta.Rows[0]));
-                        }
-                        else return Ok("Horario Eliminado");
-
+                        if (DeportAdapter.EliminarHorarioDeportivo(id)) return Ok("Horario Eliminado");
+                        else return Conflict();
                     }
-
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR ELIMINANDO HORARIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -3107,37 +2745,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> EliminarInscripcionTorneo(int id_inscripcion)
+        public ActionResult<string> EliminarInscripcionTorneo(int id_inscripcion)
         {
             try
             {
-                if (await TienePermiso(147))
+                if (TienePermiso(147))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        Dictionary<string, string> parametros = new() {
-                           { "@id_inscripcion",id_inscripcion.ToString() }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Eliminar_Inscripcion_Torneo", parametros);
-
-                        if (respuesta.Rows.Count > 0)
-                        {
-                            if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                            else return Conflict(new TorneosXInscripcion(respuesta.Rows[0]));
-                        }
-                        else return Ok("Inscripcion a torneo Eliminada");
-
+                        if (DeportAdapter.EliminarInscripcionTorneo(id_inscripcion)) return Ok("Inscripcion Eliminada");
+                        else return Conflict();
                     }
-
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR ELIMINANDO INSCRIPCION A TORNEO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -3173,51 +2799,39 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> EliminarInscripcionDeporte(int id_inscripcion)
+        public ActionResult<string> EliminarInscripcionDeporte(int id_inscripcion)
         {
             try
             {
-                if (await TienePermiso(147))
+                if (TienePermiso(147))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        Dictionary<string, string> parametros = new() {
-                           { "@id_inscripcion",id_inscripcion.ToString() }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_DEPORTES_Eliminar_Inscripcion_Deporte", parametros);
-
-                        if (respuesta.Rows.Count > 0)
-                        {
-                            if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                            else return Conflict(new DeporteXInscripcion(respuesta.Rows[0]));
-                        }
-                        else return Ok("Inscripcion a deporte Eliminada");
-
+                        if (DeportAdapter.EliminarInscripcionDeporte(id_inscripcion)) return Ok("Inscripcion Eliminada");
+                        else return Conflict();
                     }
-
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR ELIMINANDO INSCRIPCION A DEPORTE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
-        private async Task<bool> TienePermiso(int id_funcion)
+        /// <summary>
+        /// Permite validar si el perfil tiene permiso en la BD para ejecutar este endpoint
+        /// </summary>
+        /// <param name="id_funcion">Es la funcion que queremos validar </param>
+        /// <returns> True = Tiene permisos || False = No tiene permisos </returns>
+        private bool TienePermiso(int id_funcion)
         {
             string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
             if (userData == null || userData == "NO DATA") return false;
-
-            int id_perfil;
-            try { id_perfil = int.Parse(userData.Split(',')[1]); }
-            catch (Exception) { return false; }
-
-            PerfilesController p = new();
-            return await p.TienePermiso(_config, id_perfil, id_funcion);
+            if (int.TryParse(userData.Split(',')[1], out int id_perfil)) return UserAdapter.TienePermiso(id_funcion, id_perfil);
+            else return false;
         }
     }
 }

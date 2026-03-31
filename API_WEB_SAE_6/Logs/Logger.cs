@@ -5,141 +5,96 @@ using Microsoft.Extensions.Logging;
 namespace API_WEB_SAE_6.Logs
 {
     /// <summary>
-    /// 
+    /// Esta clase esta creada con el proposito de almacenar mensajes en formato .txt dentro de la carpeta Logs
     /// </summary>
     public class Logger
     {
-        private static string DirectoryPath= Environment.CurrentDirectory + "\\Logs";
-        private static string Env = "GENA";
+        /// <summary>
+        /// Es el directorio para los registros de errores
+        /// </summary>
+        private static string ErrorPath = Environment.CurrentDirectory;
+        /// <summary>
+        /// Es el directorio para las alertas del sistema
+        /// </summary>
+        private static string WarningsPath = Environment.CurrentDirectory;
+        /// <summary>
+        /// Es el directorio para las IP que se registran
+        /// </summary>
+        private static string SessionsPath = Environment.CurrentDirectory;
+        /// <summary>
+        /// Es el directorio para las acciones
+        /// </summary>
+        private static string InfoPath = Environment.CurrentDirectory;
         /// <summary>
         /// 
         /// </summary>
-        public Logger() {
-
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="config"></param>
-        public static void DefineDirectorio(IConfiguration config)
+        public enum LogOptions
         {
-            string env = config.GetSection("ConnectionStrings").GetSection("Enviroment").Value?.ToString() ?? "ERROR";
-            if (env == "ERROR" || env == "") DirectoryPath = "DATOS NO ENCONTRADOS";
+            /// <summary>
+            /// Para cuando queremos registrar una excepcion no contemplada
+            /// </summary>
+            Error,
+            /// <summary>
+            /// Cuando queremos registrar una accion del usuario
+            /// </summary>
+            Info,
+            /// <summary>
+            /// Cuando registramos actividad sospechosa o fuera de lo normal
+            /// </summary>
+            Alerta,
+            /// <summary>
+            /// Cuando registramos quien envia la informacion
+            /// </summary>
+            IP
+        };
 
-            switch (env)
-            {
-                case "GENA":
-                    Env = "GENA";
-                    DirectoryPath = Environment.CurrentDirectory + "\\Logs";
-                    break;
-                case "JUAN":
-                    Env = "JUAN";
-                    DirectoryPath = Environment.CurrentDirectory + "\\Logs";
-                    break;
-                case "DESA":
-                    Env = "DESA";
-                    DirectoryPath = Environment.CurrentDirectory + "/Logs";
-                    break;
-                case "PROD":
-                    Env = "PROD";
-                    DirectoryPath = Environment.CurrentDirectory + "/Logs";
-                    break;
-                default:
-                    Env = "GENA";
-                    DirectoryPath = Environment.CurrentDirectory + "\\Logs";
-                    break;
-            }
-        }
         /// <summary>
-        /// 
+        /// Constructor vacio.
         /// </summary>
-        /// <param name="ex"></param>
-        /// <param name="error"></param>
-        public void RegistrarERROR(Exception ex, string error)
-        {
-            if (Env == "GENA"|| Env == "JUAN")
-            {
-                //Prueba en Windows
-                DateTime actual = DateTime.Now;
-                string fileName = DirectoryPath + "\\Registros\\" + actual.ToString("yyyy-MM-dd") + ".txt";
-                //Sino existe crea la carpeta para registrar errores
-                if (!Directory.Exists(DirectoryPath + "\\Registros")) Directory.CreateDirectory(DirectoryPath + "\\Registros");
-
-                using (var sw = new StreamWriter(fileName, true))
-                {
-                    sw.WriteLine(actual + ", ERROR: " + error + ", MESSAGE EXCEPTION: " + ex.Message);
-                }
-            }
-            else
-            {
-                //Prueba en Linux
-                DateTime actual = DateTime.Now;
-                string fileName = "/var/log/API_SAE_Error_" + actual.ToString("yyyy-MM-dd") + ".txt";
-
-                using (var sw = new StreamWriter(fileName, true))
-                {
-                    sw.WriteLine(actual + ", ERROR: " + error + ", MESSAGE EXCEPTION: " + ex.Message);
-                }
-
-            }
-        }
+        public Logger() { }
         /// <summary>
-        /// 
+        /// Con esta funcion definimos adonde vamos a estar realizando los registros de errores, advertencas y sesiones.
         /// </summary>
-        /// <param name="origen"></param>
-        /// <param name="comportamiento"></param>
-        public void RegistrarAnomalia(string origen, string comportamiento)
+        public static void DefinirDirectorios()
         {
-            if (Env == "GENA" || Env == "JUAN")
-            {
-                DateTime actual = DateTime.Now;
-                string fileName = DirectoryPath + "\\Alertas\\" + actual.ToString("yyyy-MM-dd") + ".txt";
-
-                using (var sw = new StreamWriter(fileName, true))
-                {
-                    sw.WriteLine(actual + ", ANOMALIA: " + comportamiento + ", DESDE EL HOST: " + origen);
-                }
-            }
-            else
-            {
-                //Prueba en Linux
-                DateTime actual = DateTime.Now;
-                string fileName = "/var/log/API_SAE_Warning_" + actual.ToString("yyyy-MM-dd") + ".txt";
-
-                using (var sw = new StreamWriter(fileName, true))
-                {
-                    sw.WriteLine(actual + ", ANOMALIA: " + comportamiento + ", DESDE EL HOST: " + origen);
-                }
-            }
+            string baseDirectory = Environment.CurrentDirectory;
+            string separador = "/";
+            //Si utiliza la barra invertida es que estamos en Windows
+            if (Directory.Exists(baseDirectory) && baseDirectory.Contains(@"\"))
+                separador = "\\";
+            //En teoria el separador se define por el sistema operativo
+            ErrorPath = baseDirectory + separador + "Logs" + separador + "Registros" + separador;
+            WarningsPath = baseDirectory + separador + "Logs" + separador + "Alertas" + separador;
+            SessionsPath = baseDirectory + separador + "Logs" + separador + "Sesiones" + separador;
+            InfoPath = baseDirectory + separador + "Logs" + separador + "Info" + separador;
         }
+
+
         /// <summary>
-        /// 
+        /// Esta funcion es una simplificacion del registro de todo tipo de opciones. La opcion seleccionada determina donde lo vamos a guardar.
         /// </summary>
-        /// <param name="legajo"></param>
-        /// <param name="IP"></param>
-        public void RegistrarIP(string legajo, string IP)
+        /// <param name="option">Opcion que vamos a utilizar Ej: Error. </param>
+        /// <param name="function">Endpoint o funcion donde se inicia el registro</param>
+        /// <param name="description">La descripcion del evento</param>
+        /// <param name="controller">El controlador donde ocurre dicho evento</param>
+        public static void RegistrarDatos(LogOptions option, string function, string description, string controller)
         {
-            if (Env == "GENA" || Env == "JUAN")
+            string fileName = option switch
             {
-                DateTime actual = DateTime.Now;
-                string fileName = DirectoryPath + "\\Sesiones\\" + actual.ToString("yyyy-MM-dd") + ".txt";
-                //Sino existe crea la carpeta para registrar errores
-                if (!Directory.Exists(DirectoryPath + "\\Sesiones")) Directory.CreateDirectory(DirectoryPath + "\\Sesiones");
-
-                using (var sw = new StreamWriter(fileName, true))
-                {
-                    sw.WriteLine("El legajo: " + legajo + " realizo la conexion desde: " + IP + " en el horario de: " + actual + " (Hora servidor)");
-                }
-            }
-            else {
-                DateTime actual = DateTime.Now;
-                string fileName = "/var/log/API_SAE_Session_" + actual.ToString("yyyy-MM-dd") + ".txt";
-
-                using (var sw = new StreamWriter(fileName, true))
-                {
-                    sw.WriteLine("El legajo: " + legajo + " realizo la conexion desde: " + IP + " en el horario de: " + actual + " (Hora servidor)");
-                }
-            }
+                LogOptions.Info => InfoPath,
+                LogOptions.Error => ErrorPath,
+                LogOptions.Alerta => WarningsPath,
+                LogOptions.IP => SessionsPath,
+                _ => InfoPath,
+            };
+            //Sino existe, crea la carpeta para registrar
+            if (!Directory.Exists(fileName)) Directory.CreateDirectory(fileName);
+            //Ahora al nombre del archivo le agrega el dia de la fecha
+            fileName += DateTime.Now.ToString("yyyy-MM-dd") + ".txt";
+            using var sw = new StreamWriter(fileName, true);
+            sw.WriteLine("Funcion: " + function
+                + " descripcion: " + description
+                + " controlador: " + controller);
 
         }
     }

@@ -2,18 +2,23 @@
 
 namespace API_WEB_SAE_6.Models
 {
+    /// <summary> </summary>
     public class InteresadosSAE
     {
-        public int id { get; set; }
-        public string nombre_interesado { get; set; }
-        public string contacto { get; set; }
-        public string email { get; set; }
-
+        /// <summary> </summary>
+        public int id { get; set; } = -1;
+        /// <summary> </summary>
+        public string nombre_interesado { get; set; } = "";
+        /// <summary> </summary>
+        public string contacto { get; set; } = "";
+        /// <summary> </summary>
+        public string email { get; set; } = "";
+        /// <summary> </summary>
         public InteresadosSAE()
         {
 
         }
-
+        /// <summary> </summary>
         public InteresadosSAE(DataRow data)
         {
             id = int.Parse(data["id"].ToString() ?? "0");

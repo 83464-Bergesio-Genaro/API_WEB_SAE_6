@@ -1,9 +1,11 @@
-﻿using API_WEB_SAE_6.Logs;
+﻿using API_WEB_SAE_6.Adapters;
+using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models;
+using API_WEB_SAE_6.Tools;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using System.Data;
+using Microsoft.AspNetCore.StaticFiles;
 using System.Security.Claims;
 
 namespace API_WEB_SAE_6.Controllers
@@ -18,20 +20,21 @@ namespace API_WEB_SAE_6.Controllers
     public class EstudianteController : Controller
     {
         /// <summary>
-        /// EN: The logger functions as a register of the exception that happen in the runtime. <br/>
-        /// ES: El logger funciona como el registro de excpciones que pasan en tiempo de ejecuccion <br/>
+        /// Es el adaptador de usuarios para consultar los permisos
         /// </summary>
-        private readonly Logger _logger = new();
-
-        private readonly IConfiguration _config;
+        private UsuarioAdapter UserAdapter = new();
+        /// <summary>
+        /// Es el adaptador con respecto a la base de datos para realizar llamadas
+        /// </summary>
+        private EstudianteAdapter EstudianteAdapter = new();
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="config"></param>
-        public EstudianteController(IConfiguration config)
-        {
-            _config = config;
-        }
+        private readonly string ControllerName = "EstudianteController";
+        /// <summary>
+        /// 
+        /// </summary>
+        public EstudianteController() {}
         /// <summary>
         /// Recupera un documento por su ID
         /// </summary>
@@ -72,34 +75,54 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<DocumentosEstudiante>> DescargarDocumentacionXId(int id)
+        public ActionResult<DocumentosEstudiante> DescargarDocumentacionXId(int id)
         {
             try
             {
                 string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                if (userData == null || userData == "NO DATA") return Unauthorized();
 
-                string legajoRegistrado = userData.Split(',')[0];
-                Dictionary<string, string> parametros = new() {
-                        {"@id_doc", id.ToString() }
-                };
-                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_ESTUDIANTE_Buscar_Documento_Id", parametros);
-                if (respuesta.Rows.Count == 0) return NoContent();
-                if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                DocumentosEstudiante documento = new(respuesta.Rows[0]);
-
-                //Solo empleados, administrador y el mismo estudiante puede ver la documentacion asociada a un legajo
-                if (legajoRegistrado == documento.legajo || await TienePermiso(154)) return Ok(documento);
-                else
+                if (userData != null && userData != "NO DATA" && TienePermiso(154))
                 {
-                    _logger.RegistrarAnomalia(HttpContext.Request.Host.Value, "Intento descargar documentacion que no era suya conociendo el ID del mismo.");
-                    return Forbid();
+                    DocumentosEstudiante? doc = EstudianteAdapter.BuscarDocumentoXId(id);
+
+                    if (doc != null && doc.id != -1)
+                    {
+                        string legajoRegistrado = userData.Split(',')[0];
+                        string idPerfil = userData.Split(',')[1];
+                        //Valida que quien descarga sea empleado, administrador o sea el legajo del mismo estudiante
+                        if (idPerfil == "2" || idPerfil == "5" || legajoRegistrado == doc.legajo)
+                        {
+                            SettingsReader set = SettingsReader.GetAppSettings();
+                            string uploadsPath = set.GetFilesLocation();
+                            if (uploadsPath != "ERROR")
+                            {
+                                string filePath = Path.Combine(uploadsPath, doc.ruta);
+                                //Verifica si existe el archivo
+                                FileInfo fileInfo = new(filePath);
+
+                                if (fileInfo.Exists)
+                                {
+                                    FileStream stream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read); ;
+                                    FileExtensionContentTypeProvider provider = new();
+                                    //Se asegura que puedas descargar el archivo despues
+                                    if (!provider.TryGetContentType(filePath, out string? contentType))
+                                        contentType = "application/octet-stream"; // fallback
+                                    return File(stream, contentType, doc.nombre_documento);
+                                }
+                                else return NotFound();
+                            }
+                            else return Conflict("Sistema de Archivos no encontrado");
+                        }
+                        else return Unauthorized();
+                        
+                    }
+                    else return NotFound();
                 }
+                else return Unauthorized();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO DOCUMENTACION ESTUDIANTE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -143,42 +166,35 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<DocumentosEstudiante>>> ListarDocumentacionXLegajo(string legajo)
+        public ActionResult<IEnumerable<DocumentosEstudiante>> ListarDocumentacionXLegajo(string legajo)
         {
             try
             {
                 string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                if (userData == null || userData == "NO DATA") return Unauthorized();
 
-                string legajoRegistrado = userData.Split(',')[0];
-                //Solo la misma persona que sube los archivos puede ver su documentacion
-                if (legajoRegistrado == legajo || await TienePermiso(154))
+                if (userData != null && userData != "NO DATA" && TienePermiso(154))
                 {
-                    Dictionary<string, string> parametros = new() {
-                        {"@legajo", legajo }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_ESTUDIANTE_Buscar_Documento_Legajo", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    List<DocumentosEstudiante> listadoDocumentos = new();
-                    foreach (DataRow row in respuesta.Rows)
+                    string legajoRegistrado = userData.Split(',')[0];
+                    string idPerfil = userData.Split(',')[1];
+                    if (idPerfil == "2" || idPerfil == "5" || legajoRegistrado == legajo)
                     {
-                        DocumentosEstudiante documentos = new(row);
-                        listadoDocumentos.Add(documentos);
+                        List<DocumentosEstudiante>? documentos = EstudianteAdapter.BuscarDocumentosXLegajo(legajo);
+
+                        if (documentos != null &&
+                            documentos.Count > 0 ) return Ok(documentos);
+                        else
+                        {
+                            Logger.RegistrarDatos(Logger.LogOptions.Alerta, "DescargarDocumentacionXId", "Intento descargar documentacion que no era suya conociendo el ID del mismo. HOST:" + HttpContext.Request.Host.Value, ControllerName);
+                            return Forbid();
+                        }
                     }
-                    return Ok(listadoDocumentos);
+                    return Unauthorized();
                 }
-                else
-                {
-                    if (legajoRegistrado == legajo)
-                        _logger.RegistrarAnomalia(HttpContext.Request.Host.Value, "No es Empleado y mando un legajo diferente del suyo en el documento.");
-                    return Forbid();
-                }
+                else return Unauthorized();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO DOCUMENTACION ESTUDIANTE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -224,6 +240,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpPut("{id}")]
         [ActionName("ModificarDocumento")]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(DocumentosEstudiante), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -231,70 +248,70 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<DocumentosEstudiante>> ModificarDocumento(int id, DocumentosEstudiante documento)
+        public async Task<ActionResult<DocumentosEstudiante>> ModificarDocumento(int id,IFormFile documento)
         {
-
             try
             {
-                //No manda datos en el archivo
-                if (id != documento.id || documento.datos_documento == null) return BadRequest();
-
-                //Busca los datos guardados de la claim para verigicar todo
+                //Busca los datos guardados de la claim para verificar todo
                 string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                if (userData == null || userData == "NO DATA") return Unauthorized();
 
-                string legajoRegistrado = userData.Split(',')[0];
-
-                Dictionary<string, string> parametros = new() {
-                        {"@id_doc", id.ToString() }
-                };
-
-                //Vamos a buscar el archivo para verificar que exista y que no le cambiaron el legajo
-                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_ESTUDIANTE_Buscar_Documento_Id", parametros);
-                if (respuesta.Rows.Count == 0) return NoContent();
-                if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                DocumentosEstudiante documentoMod = new(respuesta.Rows[0]);
-
-                //Tiene diferente documento al guardado o no es su documento y tampoco es empleado.
-                if (documentoMod.legajo != documento.legajo || legajoRegistrado != documentoMod.legajo && !await TienePermiso(152))
+                if (userData != null && userData != "NO DATA" && TienePermiso(154))
                 {
-                    _logger.RegistrarAnomalia(HttpContext.Request.Host.Value, "Intento la manipulacion de documentos que no era de el o cambiar el legajo del documento");
-                    return Forbid();
-                }
-                else
-                {
-                    //Que los datos no sean nulos y no supere 50Mb
-                    if (documento.datos_documento?.Length < 50000000)
+                    //Que no supere 50Mb
+                    if (documento.Length < 50000000)
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, object> parametros2 = new() {
-                            {"@id_doc", documento.id.ToString() },
-                            {"@legajo", documento.legajo },
-                            {"@id_tipo", documento.id_tipo_documento.ToString() },
-                            {"@nombre", documento.nombre_documento },
-                            {"@datos", documento.datos_documento },
-                            {"@id_usuario_mod",usuarioActual },
-                        };
+                        string legajo = userData.Split(",")[0];
+                        List<DocumentosEstudiante>? docs = EstudianteAdapter.BuscarDocumentosXLegajo(legajo);
+                        
+                        if (docs != null && docs.Count > 0)
+                        {
+                            //Que busque entre los documentos de esta persona que el legajo esto este existe. Es decir esta asignado a esta persona
+                            DocumentosEstudiante? doc = docs.Find(x => x.legajo == legajo);
+                            SettingsReader set = SettingsReader.GetAppSettings();
+                            string uploadsPath = set.GetFilesLocation();
+                            
+                            if (uploadsPath != "ERROR" && doc != null)
+                            {
+                                string idPerfil = userData.Split(",")[1];
+                                string idUserMod = userData.Split(',')[2];
+                                if (idPerfil == "1" && doc.legajo != legajo) return BadRequest();
+                                string filePath = Path.Combine(uploadsPath, doc.ruta);
+                                //Verifica si existe el archivo
+                                FileInfo fileInfo = new(filePath);
 
-                        respuesta = GeneralAdapterSQL.ExecuteStoredProcedureDocument(_config, "MODULO_ESTUDIANTE_Modificar_Documento_Estudiante", parametros2);
-                        //En este caso sino modifica nada es un conflicto en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Ok(new DocumentosEstudiante(respuesta.Rows[0]));
+                                if (fileInfo.Exists)
+                                {
+                                    using var stream = new FileStream(filePath, FileMode.Create);
+                                    await documento.CopyToAsync(stream);
+
+                                    //Lo unico que cambia es el tamaño
+                                    doc.tamanio = documento.Length;
+                                    doc = EstudianteAdapter.ModificarDocumento(doc, idUserMod);
+
+                                    if (doc.id != -1) return Ok(doc);
+                                    else return Conflict("Archivo no Modificado");
+                                }
+                                else return NotFound();
+                            }
+                            else return Conflict("Sistema de Archivos no encontrado");
+                        }
+                        else return NotFound();
                     }
                     else return StatusCode(413, "El archivo no debe superar los 50Mb");
                 }
+                else return Unauthorized();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO DOCUMENTO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
         /// <summary>
         /// Permite crear un nuevo documento
         /// </summary>
-        /// <param name="documento">El archivo que deseamos almacenar en la BD</param>
+        /// <param name="archivo">El archivo que deseamos almacenar en la BD</param>
+        /// <param name="idTipoDocumento">El tipo de documento que subimos</param>
         /// <returns>Una inscripcion creada en la base de datos o error</returns>
         /// <remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
@@ -330,8 +347,9 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="413" >El archivo que se cargo supero los 50Mb </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpPost]
+        [HttpPost("{idTipoDocumento}")]
         [ActionName("CrearDocumentoEstudiante")]
+        [Consumes("multipart/form-data")]
         [Authorize]
         [ProducesResponseType(typeof(DocumentosEstudiante), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -340,52 +358,69 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<DocumentosEstudiante>> CrearDocumentoEstudiante(DocumentosEstudiante documento)
+        public async Task <ActionResult<DocumentosEstudiante>> CrearDocumentoEstudiante(int idTipoDocumento,IFormFile archivo)
         {
             try
             {
-                //No manda datos en el archivo
-                if (documento.datos_documento == null) return BadRequest();
-
-                //Lo estudiantes solo pueden crear documentacion referida a su legajo
                 string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                string legajoRegistrado = userData.Split(',')[0];
-                if (legajoRegistrado == documento.legajo || await TienePermiso(151))
+                if (userData != null &&
+                   userData.Length > 0 &&
+                   userData != "NO DATA" &&
+                   int.TryParse(userData.Split(',')[2], out int idUserMod) &&
+                   TienePermiso(151))
                 {
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    if (archivo.Length < 50000000)
                     {
+                        string legajoActual = userData.Split(",")[0];
                         string usuarioActual = userData.Split(',')[2];
-                        //Que no supere 50Mb
-                        if (documento.datos_documento?.Length < 50000000)
+                        SettingsReader set = SettingsReader.GetAppSettings();
+                        string uploadsPath = set.GetFilesLocation();
+                        if (uploadsPath != "ERROR")
                         {
+                            uploadsPath = Path.Combine(uploadsPath, "Estudiantes", legajoActual);
 
-                            Dictionary<string, object> parametros = new() {
-                                {"@legajo", documento.legajo },
-                                {"@id_tipo", documento.id_tipo_documento.ToString() },
-                                {"@nombre", documento.nombre_documento },
-                                {"@datos", documento.datos_documento },
-                                {"@id_usuario_alta",usuarioActual },
+                            // crear carpeta si no existe
+                            if (!Directory.Exists(uploadsPath))
+                                Directory.CreateDirectory(uploadsPath);
+
+                            // nombre único
+                            var fileName = $"{Guid.NewGuid()}_{archivo.FileName}";
+                            var filePath = Path.Combine(uploadsPath, fileName);
+
+                            // guardar archivo
+                            using var stream = new FileStream(filePath, FileMode.Create);
+                            await archivo.CopyToAsync(stream);
+
+                            DocumentosEstudiante doc = new()
+                            {
+                                id = -1,
+                                id_tipo_documento = idTipoDocumento,//Tengo que ver que hago con esto
+                                nombre_documento = archivo.FileName,
+                                legajo = legajoActual,
+                                ruta = Path.Combine("Estudiantes", legajoActual, fileName),//Es una ruta relativa desde el origen del sistema de archivos
+                                tamanio = archivo.Length
                             };
-                            DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedureDocument(_config, "MODULO_ESTUDIANTE_Crear_Documento_Estudiante", parametros);
-                            //En este caso sino crea es un error en la BD
-                            if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            return Created("Documento Creado", new DocumentosEstudiante(respuesta.Rows[0]));
-                        }
-                        else return StatusCode(413, "El archivo no debe superar los 50Mb");
-                    }
-                }
-                else
-                {
-                    if (legajoRegistrado != documento.legajo)
-                        _logger.RegistrarAnomalia(HttpContext.Request.Host.Value, "No es Empleado y mando un legajo diferente del suyo en el documento.");
-                    return Forbid();
-                }
 
+                            doc = EstudianteAdapter.CrearDocumento(doc, idUserMod);
+
+                            if (doc.id != -1) return Ok(doc);
+                            else
+                            {
+                                //Sino cargo la referencia en la base lo elimina
+                                FileInfo fileInfo = new(filePath);
+                                fileInfo.Delete();
+                                return Conflict();
+                            }
+                        }
+                        else return Conflict("Sistema de Archivos no encontrado");
+                    }
+                    else return StatusCode(413, "El archivo no debe superar los 50Mb");
+                }
+                else return Unauthorized();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO DOCUMENTO PRENSA");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -421,63 +456,66 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> EliminarDocumentoEstudiante(int id_documento)
+        public ActionResult<string> EliminarDocumentoEstudiante(int id_documento)
         {
             try
             {
-                //Busca los datos guardados de la claim para verigicar todo
-                string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                if (userData == null || userData == "NO DATA") return Unauthorized();
-
-                string legajoRegistrado = userData.Split(',')[0];
-
-                Dictionary<string, string> parametros = new() {
-                        {"@id_doc", id_documento.ToString() }
-                };
-
-                //Vamos a buscar el archivo para verificar que exista y que no le cambiaron el legajo
-                DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_ESTUDIANTE_Buscar_Documento_Id", parametros);
-                if (respuesta.Rows.Count == 0) return NoContent();
-                if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                DocumentosEstudiante documentoEliminar = new(respuesta.Rows[0]);
-
-                //Tiene diferente documento al guardado o no es su documento y tampoco es empleado.
-                if (documentoEliminar.legajo != documentoEliminar.legajo || legajoRegistrado != documentoEliminar.legajo && !await TienePermiso(153))
+                if (TienePermiso(153))
                 {
-                    _logger.RegistrarAnomalia(Request.Host.Host, "Intento la eliminacion de documentos que no era de este estudiante");
-                    return Forbid();
-                }
-                else
-                {
-                    respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_PRENSA_Eliminar_Documento_Prensa", parametros);
-
-                    if (respuesta.Rows.Count > 0)
+                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+                    if (userData == null || userData == "NO DATA") return Unauthorized();
+                    else
                     {
-                        if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                        else return Conflict(new DocumentosEstudiante(respuesta.Rows[0]));
+                        DocumentosEstudiante? doc = EstudianteAdapter.BuscarDocumentoXId(id_documento);
+                        if (doc != null && doc.id != -1)
+                        {
+                            string legajoRegistrado = userData.Split(',')[0];
+                            string idPerfil = userData.Split(',')[1];
+                            if (idPerfil == "2" || idPerfil == "5" || legajoRegistrado == doc.legajo)
+                            {
+                                SettingsReader set = SettingsReader.GetAppSettings();
+                                string uploadsPath = set.GetFilesLocation();
+                                if (uploadsPath != "ERROR")
+                                {
+                                    string filePath = Path.Combine(uploadsPath, doc.ruta);
+                                    //Verifica si existe el archivo
+                                    FileInfo fileInfo = new(filePath);
+
+                                    if (fileInfo.Exists)
+                                    {
+                                        fileInfo.Delete();
+                                        if (EstudianteAdapter.EliminarDocumento(id_documento)) return Ok("Documento Eliminado");
+                                        else return Conflict("Se elimino el archivo del sistema de archivos pero no su registro en BD");
+                                    }
+                                    else return NotFound();
+                                }
+                                else return Conflict("Sistema de Archivos no encontrado");
+
+                            }
+                            else return Unauthorized();
+                        }
+                        else return NotFound();
                     }
-                    else return Ok("Documento Eliminado");
                 }
+                else return Unauthorized();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR ELIMINANDO DOCUMENTO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error,this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
-        private async Task<bool> TienePermiso(int id_funcion)
+        /// <summary>
+        /// Permite validar si el perfil tiene permiso en la BD para ejecutar este endpoint
+        /// </summary>
+        /// <param name="id_funcion">Es la funcion que queremos validar </param>
+        /// <returns> True = Tiene permisos || False = No tiene permisos </returns>
+        private bool TienePermiso(int id_funcion)
         {
             string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
             if (userData == null || userData == "NO DATA") return false;
-
-            int id_perfil;
-            try { id_perfil = int.Parse(userData.Split(',')[1]); }
-            catch (Exception) { return false; }
-
-            PerfilesController p = new();
-            return await p.TienePermiso(_config, id_perfil, id_funcion);
+            if (int.TryParse(userData.Split(',')[1], out int id_perfil)) return UserAdapter.TienePermiso(id_funcion, id_perfil);
+            else return false;
         }
     }
 }

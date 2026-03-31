@@ -1,4 +1,5 @@
-﻿using API_WEB_SAE_6.Logs;
+﻿using API_WEB_SAE_6.Adapters;
+using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
@@ -18,20 +19,21 @@ namespace API_WEB_SAE_6.Controllers
     public class JPAController : Controller
     {
         /// <summary>
-        /// EN: The logger functions as a register of the exception that happen in the runtime. <br/>
-        /// ES: El logger funciona como el registro de excpciones que pasan en tiempo de ejecuccion <br/>
+        /// Es el adaptador de usuarios para consultar los permisos
         /// </summary>
-        private readonly Logger _logger = new();
-
-        private readonly IConfiguration _config;
+        private UsuarioAdapter UserAdapter = new();
+        /// <summary>
+        /// Es el adaptador con respecto a la base de datos para realizar llamadas
+        /// </summary>
+        private JPAAdapter JpaAdapter = new();
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="config"></param>
-        public JPAController(IConfiguration config)
-        {
-            _config = config;
-        }
+        private readonly string ControllerName = "JPAController";
+        /// <summary>
+        /// 
+        /// </summary>
+        public JPAController(){}
         /// <summary>
         /// Recupera todos los eventos abiertos al publico
         /// </summary>
@@ -69,25 +71,20 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<EventosSAE>>> ObtenerEventosPublicos()
+        public ActionResult<IEnumerable<EventosSAE>> ObtenerEventosPublicos()
         {
             try
             {
-                DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_JPA_Listar_Eventos_Publicos");
-                if (respuesta.Rows.Count == 0) return NoContent();
-                if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                List<EventosSAE>? listadoEventosCompleto = JpaAdapter.ObtenerEventosPublicos();
 
-                List<EventosSAE> listadoEventosCompleto = new();
-                foreach (DataRow row in respuesta.Rows)
-                {
-                    EventosSAE eventos = new(row);
-                    listadoEventosCompleto.Add(eventos);
-                }
-                return Ok(listadoEventosCompleto.OrderBy(x => x.fecha_evento).ToList());
+                if (listadoEventosCompleto == null) return Conflict();
+                if (listadoEventosCompleto.Count == 0) return NoContent();
+
+                return Ok(listadoEventosCompleto);
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO EVENTOS PUBLICOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -133,30 +130,34 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<EventosSAE>>> ObtenerEventosSAE()
+        public ActionResult<IEnumerable<EventosSAE>> ObtenerEventosSAE()
         {
             try
             {
                 //El numero de funcion es: 105
-                if (await TienePermiso(105))
+                if (TienePermiso(105))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_JPA_Listar_Eventos_SAE");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
 
-                    List<EventosSAE> listadoEventosCompleto = new();
-                    foreach (DataRow row in respuesta.Rows)
+                    try
                     {
-                        EventosSAE eventos = new(row);
-                        listadoEventosCompleto.Add(eventos);
+                        List<EventosSAE>? listadoEventosCompleto = JpaAdapter.ObtenerEventosSAE();
+
+                        if (listadoEventosCompleto == null) return Conflict();
+                        if (listadoEventosCompleto.Count == 0) return NoContent();
+
+                        return Ok(listadoEventosCompleto);
                     }
-                    return Ok(listadoEventosCompleto.OrderBy(x => x.fecha_evento).ToList());
+                    catch (Exception ex)
+                    {
+                        Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                        return BadRequest();
+                    }
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO EVENTOS INTERNOS DE LA SAE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -201,26 +202,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<EventosSAE>> ObtenerEventosXId(int id)
+        public ActionResult<EventosSAE> ObtenerEventosXId(int id)
         {
             try
             {
-                if (await TienePermiso(105))
+                if (TienePermiso(105))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_evento", id.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Buscar_Eventos_Id", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    else return Ok(new EventosSAE(respuesta.Rows[0]));
+                    EventosSAE? evento = JpaAdapter.ObtenerEventoXId(id);
+                    if (evento == null) return Conflict();
+                    if (evento.id == -1) return NoContent();
+                    else return Ok(evento);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO EVENTO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -274,37 +271,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<EventosSAE>> ModificarEvento(int id, [FromBody, Required] EventosSAE eventoSAE)
+        public ActionResult<EventosSAE> ModificarEvento(int id, [FromBody, Required] EventosSAE eventoSAE)
         {
             try
             {
                 if (id != eventoSAE.id) return BadRequest();
                 //El numero de funcion es: 104
-                if (await TienePermiso(104))
+                if (TienePermiso(104))
                 {
-                    //string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    //if (userData == null || userData == "NO DATA") return Unauthorized();
-                    //string usuarioActual = userData.Split(',')[2];
-                    Dictionary<string, string> parametros = new() {
-                        { "@id_evento",eventoSAE.id.ToString() },
-                        { "@fecha", eventoSAE.fecha_evento.ToShortDateString() },
-                        { "@hora_ini",eventoSAE.horario_inicio},
-                        { "@hora_fin",eventoSAE.horario_fin},
-                        { "@encargado", eventoSAE.encargado },
-                        { "@nombre_evento",eventoSAE.nombre_evento},
-                        { "@informacion_interna",eventoSAE.informacion_interna.ToString()}
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Modificar_Evento", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(new EventosSAE(respuesta.Rows[0]));
+                    eventoSAE = JpaAdapter.ModificarEventoSae(eventoSAE);
+                    if (eventoSAE.id != -1) return Ok(eventoSAE);
+                    else return Conflict();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO EVENTO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -357,38 +340,26 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<EventosSAE>> CrearEvento([FromBody] EventosSAE eventoSAE)
+        public ActionResult<EventosSAE> CrearEvento([FromBody] EventosSAE eventoSAE)
         {
             try
             {
-                if (await TienePermiso(102))
+                if (TienePermiso(102))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        //string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@fecha", eventoSAE.fecha_evento.ToShortDateString() },
-                            { "@hora_ini",eventoSAE.horario_inicio},
-                            { "@hora_fin",eventoSAE.horario_fin},
-                            { "@encargado", eventoSAE.encargado },
-                            { "@nombre_evento",eventoSAE.nombre_evento},
-                            { "@informacion_interna",eventoSAE.informacion_interna.ToString()}
-                        };
-
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Crear_Evento", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Evento Creado", new EventosSAE(respuesta.Rows[0]));
+                        eventoSAE = JpaAdapter.CrearEventoSae(eventoSAE);
+                        if (eventoSAE.id != -1) return Created("Evento Creado", eventoSAE);
+                        else return Conflict();
                     }
-
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO EVENTO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -419,35 +390,24 @@ namespace API_WEB_SAE_6.Controllers
         [HttpDelete("{id}")]
         [ActionName("EliminarEvento")]
         [Authorize]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string),StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> EliminarEvento(int id)
+        public ActionResult<string> EliminarEvento(int id)
         {
             try
             {
-                if (await TienePermiso(103))
+                if (TienePermiso(103))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        Dictionary<string, string> parametros = new() {
-                           { "@id_evento",id.ToString() }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Eliminar_Evento", parametros);
-
-                        if (respuesta.Rows.Count > 0)
-                        {
-                            if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                            else return Conflict(new HorariosSAE(respuesta.Rows[0]));
-                        }
-                        else return Ok("Evento Eliminado");
-
+                        if (JpaAdapter.EliminarEventoSae(id)) return Ok("Evento Eliminado");
+                        else return Conflict();
                     }
 
                 }
@@ -455,7 +415,7 @@ namespace API_WEB_SAE_6.Controllers
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR ELIMINANDO EVENTO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -499,27 +459,21 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<StandJPA>>> ObtenerStands()
+        public ActionResult<IEnumerable<StandJPA>> ObtenerStands()
         {
             try
             {
+                List<StandJPA>? listadoStandsCompleto = JpaAdapter.ObtenerStandsCompleto();
 
-                DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_JPA_Listar_Stand");
-                if (respuesta.Rows.Count == 0) return NoContent();
-                if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                if (listadoStandsCompleto == null) return Conflict();
+                if (listadoStandsCompleto.Count == 0) return NoContent();
 
-                List<StandJPA> listadoEventosCompleto = new();
-                foreach (DataRow row in respuesta.Rows)
-                {
-                    StandJPA eventos = new(row);
-                    listadoEventosCompleto.Add(eventos);
-                }
-                return Ok(listadoEventosCompleto);
+                return Ok(listadoStandsCompleto);
 
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO STANDS PUBLICOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -571,33 +525,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<StandJPA>> ModificarStand(int id, [FromBody, Required] StandJPA stand)
+        public ActionResult<StandJPA> ModificarStand(int id, [FromBody, Required] StandJPA stand)
         {
             try
             {
                 if (id != stand.id) return BadRequest();
                 //El numero de funcion es: 109
-                if (await TienePermiso(109))
+                if (TienePermiso(109))
                 {
-                    Dictionary<string, string> parametros = new() {
-                        { "@id_stand",stand.id.ToString() },
-                        { "@nombre_stand",stand.nombre_stand },
-                        { "@hora_ini", stand.horario_inicio },
-                        { "@hora_fin", stand.horario_fin },
-                        { "@ubicacion", stand.ubicacion },
-                        { "@expositor", stand.expositor }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Modificar_Stand", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(new StandJPA(respuesta.Rows[0]));
+                    stand = JpaAdapter.ModificarStandJPA(stand);
+                    if (stand.id != -1) return Ok(stand);
+                    else return Conflict();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO STAND");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -648,29 +592,21 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<StandJPA>> CrearStand(StandJPA stand)
+        public ActionResult<StandJPA> CrearStand(StandJPA stand)
         {
             try
             {
-                if (await TienePermiso(107))
+                if (TienePermiso(107))
                 {
-                    Dictionary<string, string> parametros = new() {
-                            { "@nombre_stand",stand.nombre_stand },
-                            { "@hora_ini", stand.horario_inicio },
-                            { "@hora_fin", stand.horario_fin },
-                            { "@ubicacion", stand.ubicacion },
-                            { "@expositor", stand.expositor }
-                        };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Crear_Stand", parametros);
-                    //En este caso sino crea es un error en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Created("Stand Creado", new StandJPA(respuesta.Rows[0]));
+                    stand = JpaAdapter.CrearStandJPA(stand);
+                    if (stand.id != -1) return Created("Stand Creado", stand);
+                    else return Conflict();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO STAND");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -688,7 +624,7 @@ namespace API_WEB_SAE_6.Controllers
         ///     
         ///     RESPONSE:
         ///     {
-        ///         "Stand Eliminado"
+        ///         "Stand Eliminado" (ORA ORA ORA ORA ORA ORA)
         ///     }
         ///     
         /// </remarks>
@@ -707,37 +643,27 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> EliminarStand(int id)
+        public ActionResult<string> EliminarStand(int id)
         {
             try
             {
-                if (await TienePermiso(108))
+                if (TienePermiso(108))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        Dictionary<string, string> parametros = new() {
-                           { "@id_stand",id.ToString() }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Eliminar_Stand", parametros);
-
-                        if (respuesta.Rows.Count > 0)
-                        {
-                            if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                            else return Conflict(new HorariosSAE(respuesta.Rows[0]));
-                        }
-                        else return Ok("Stand Eliminado");
-
+                        //ORA ORA ORA ORA ORA ORA ORA ORA ORA
+                        if (JpaAdapter.EliminarStand(id)) return Ok("Stand Eliminado");
+                        //MUDA MUDA MUDA MUDA MUDA MUDA MUDA
+                        else return Conflict();    
                     }
-
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR ELIMINANDO STAND");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -780,30 +706,24 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<InteresadosSAE>>> ObtenerInteresadosEventos()
+        public ActionResult<IEnumerable<InteresadosSAE>> ObtenerInteresadosEventos()
         {
             try
             {
-                if (await TienePermiso(106))
+                if (TienePermiso(106))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_JPA_Listar_Interesados");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<InteresadosSAE>? listadoInteresados = JpaAdapter.ObtenerInteresadosEventos();
 
-                    List<InteresadosSAE> listadoInteresados = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        InteresadosSAE eventos = new(row);
-                        listadoInteresados.Add(eventos);
-                    }
-                    return Ok(listadoInteresados);
+                    if (listadoInteresados == null) return Conflict();
+                    if (listadoInteresados.Count > 0) return Ok(listadoInteresados);
+                    else return NoContent();
                 }
                 else return Forbid();
 
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO INTERESADOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -851,31 +771,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<StandJPA>> ModificarInteresado(int id, [FromBody, Required] InteresadosSAE interesado)
+        public ActionResult<StandJPA> ModificarInteresado(int id, [FromBody, Required] InteresadosSAE interesado)
         {
             try
             {
                 if (id != interesado.id) return BadRequest();
                 //El numero de funcion es: 109
-                if (await TienePermiso(113))
+                if (TienePermiso(113))
                 {
-                    Dictionary<string, string> parametros = new() {
-                        { "@id_interesado",interesado.id.ToString() },
-                        { "@nombre",interesado.nombre_interesado },
-                        { "@contacto", interesado.contacto },
-                        { "@email", interesado.email }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Modificar_Interesados", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(new InteresadosSAE(respuesta.Rows[0]));
+                    interesado = JpaAdapter.ModificarInteresado(interesado);
+                    if (interesado.id != -1) return Ok(interesado);
+                    else return Conflict();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO INTERESADO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -922,27 +834,21 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<InteresadosSAE>> CrearInteresados(InteresadosSAE interesado)
+        public ActionResult<InteresadosSAE> CrearInteresados(InteresadosSAE interesado)
         {
             try
             {
-                if (await TienePermiso(107))
+                if (TienePermiso(107))
                 {
-                    Dictionary<string, string> parametros = new() {
-                            { "@nombre",interesado.nombre_interesado },
-                            { "@contacto", interesado.contacto },
-                            { "@email", interesado.email }
-                        };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Crear_Interesado", parametros);
-                    //En este caso sino crea es un error en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Created("Interesado Creado", new InteresadosSAE(respuesta.Rows[0]));
+                    interesado = JpaAdapter.CrearInteresado(interesado);
+                    if (interesado.id != -1) return Created("Interesado Creado", interesado);
+                    else return Conflict();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO INTERESADO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -979,37 +885,20 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> EliminarInteresado(int id)
+        public ActionResult<string> EliminarInteresado(int id)
         {
             try
             {
-                if (await TienePermiso(112))
+                if (TienePermiso(112))
                 {
-                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
-                    {
-                        Dictionary<string, string> parametros = new() {
-                           { "@id_interesado",id.ToString() }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_JPA_Eliminar_Interesado", parametros);
-
-                        if (respuesta.Rows.Count > 0)
-                        {
-                            if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                            else return Conflict(new InteresadosSAE(respuesta.Rows[0]));
-                        }
-                        else return Ok("Interesado Eliminado");
-
-                    }
-
+                    if (JpaAdapter.EliminarStand(id)) return Ok("Interesado Eliminado");
+                    else return Conflict();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR ELIMINANDO INTERESADO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1018,17 +907,12 @@ namespace API_WEB_SAE_6.Controllers
         /// </summary>
         /// <param name="id_funcion">Es la funcion que queremos validar </param>
         /// <returns> True = Tiene permisos || False = No tiene permisos </returns>
-        private async Task<bool> TienePermiso(int id_funcion)
+        private bool TienePermiso(int id_funcion)
         {
             string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
             if (userData == null || userData == "NO DATA") return false;
-
-            int id_perfil;
-            try { id_perfil = int.Parse(userData.Split(',')[1]); }
-            catch (Exception) { return false; }
-
-            PerfilesController p = new();
-            return await p.TienePermiso(_config, id_perfil, id_funcion);
+            if (int.TryParse(userData.Split(',')[1], out int id_perfil)) return UserAdapter.TienePermiso(id_funcion, id_perfil);
+            else return false;
         }
     }
 }

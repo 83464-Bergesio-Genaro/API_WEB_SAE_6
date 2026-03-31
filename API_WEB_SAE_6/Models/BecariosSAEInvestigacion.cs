@@ -2,18 +2,20 @@
 
 namespace API_WEB_SAE_6.Models
 {
+    /// <summary></summary>
     public class BecariosSAEInvestigacion
     {
-        public int id { get; set; }
+        /// <summary></summary>
+        public int id { get; set; } = -1;
+        /// <summary></summary>
         public ProyectosInvestigacion? proyecto_investigacion { get; set; }
-        public int modulos_asignados { get; set; }
-        public BecariosSAE becario { get; set; }
-
-        public BecariosSAEInvestigacion()
-        {
-
-        }
-
+        /// <summary></summary>
+        public int modulos_asignados { get; set; } = -1;
+        /// <summary></summary>
+        public BecariosSAE becario { get; set; } = new();
+        /// <summary></summary>
+        public BecariosSAEInvestigacion() { }
+        /// <summary></summary>
         public BecariosSAEInvestigacion(DataRow data)
         {
             id = int.Parse(data["id_investigacion"].ToString() ?? "0");

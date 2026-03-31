@@ -2,18 +2,27 @@
 
 namespace API_WEB_SAE_6.Models
 {
+    /// <summary></summary>
     public class StandJPA
     {
-        public int id { get; set; }
-        public string nombre_stand { get; set; }
-        public string expositor { get; set; }
-        public string ubicacion { get; set; }
-        public string horario_inicio { get; set; }
-        public string horario_fin { get; set; }
+        /// <summary></summary>
+        public int id { get; set; } = -1;
+        /// <summary></summary>
+        public string nombre_stand { get; set; } = "";
+        /// <summary></summary>
+        public string expositor { get; set; } = "";
+        /// <summary></summary>
+        public string ubicacion { get; set; } = "";
+        /// <summary></summary>
+        public string horario_inicio { get; set; } = "";
+        /// <summary></summary>
+        public string horario_fin { get; set; } = "";
+        /// <summary></summary>
         public StandJPA()
         {
 
         }
+        /// <summary></summary>
         public StandJPA(DataRow data)
         {
             id = int.Parse(data["id"].ToString() ?? "0");

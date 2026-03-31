@@ -1,4 +1,4 @@
-﻿
+﻿using API_WEB_SAE_6.Adapters;
 using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -21,20 +21,21 @@ namespace API_WEB_SAE_6.Controllers
     public class EmpleadosController : Controller
     {
         /// <summary>
-        /// EN: The logger functions as a register of the exception that happen in the runtime. <br/>
-        /// ES: El logger funciona como el registro de excpciones que pasan en tiempo de ejecuccion <br/>
+        /// Es el adaptador de usuarios para consultar los permisos
         /// </summary>
-        private readonly Logger _logger = new();
-
-        private readonly IConfiguration _config;
+        private UsuarioAdapter UserAdapter = new();
+        /// <summary>
+        /// Es el adaptador con respecto a la base de datos para realizar llamadas
+        /// </summary>
+        private EmpleadoAdapter EmployAdapter = new();
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="config"></param>
-        public EmpleadosController(IConfiguration config)
-        {
-            _config = config;
-        }
+        private readonly string ControllerName = "EmpleadosController";
+        /// <summary>
+        /// 
+        /// </summary>
+        public EmpleadosController() { }
         /// <summary>
         /// Recupera todos los empleados
         /// </summary>
@@ -73,30 +74,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<EmpleadosSAE>>> ObtenerEmpleados()
+        public ActionResult<IEnumerable<EmpleadosSAE>> ObtenerEmpleados()
         {
             try
             {
                 //El numero de funcion es: 45
-                if (await TienePermiso(45))
+                if (TienePermiso(45))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_EMPLEADOS_Listar_empleados_completo");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<EmpleadosSAE>? listadoDeportes = EmployAdapter.ObtenerEmpleadosCompleto();
 
-                    List<EmpleadosSAE> listadoEmpleadosCompleto = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        EmpleadosSAE empleado = new(row);
-                        listadoEmpleadosCompleto.Add(empleado);
-                    }
-                    return Ok(listadoEmpleadosCompleto);
+                    if (listadoDeportes == null) return Conflict();
+                    if (listadoDeportes.Count == 0) return NoContent();
+
+                    return Ok(listadoDeportes);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO EMPLEADOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -137,30 +133,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<EmpleadosSAE>>> ObtenerEmpleadosActivos()
+        public ActionResult<IEnumerable<EmpleadosSAE>> ObtenerEmpleadosActivos()
         {
             try
             {
                 //El numero de funcion es: 45
-                if (await TienePermiso(45))
+                if (TienePermiso(45))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_EMPLEADOS_Listar_empleados_activos");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<EmpleadosSAE>? listadoDeportes = EmployAdapter.ObtenerEmpleadosActivo();
 
-                    List<EmpleadosSAE> listadoEmpleadosCompleto = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        EmpleadosSAE empleado = new(row);
-                        listadoEmpleadosCompleto.Add(empleado);
-                    }
-                    return Ok(listadoEmpleadosCompleto);
+                    if (listadoDeportes == null) return Conflict();
+                    if (listadoDeportes.Count == 0) return NoContent();
+
+                    return Ok(listadoDeportes);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO EMPLEADOS ACTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -201,26 +192,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<EmpleadosSAE>> ObtenerEmpleadosXId(int id)
+        public ActionResult<EmpleadosSAE> ObtenerEmpleadosXId(int id)
         {
             try
             {
-                if (await TienePermiso(45))
+                if ( TienePermiso(45))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_empleado", id.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_EMPLEADOS_Buscar_Empleados_id", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    else return Ok(new EmpleadosSAE(respuesta.Rows[0]));
+                    EmpleadosSAE? espe = EmployAdapter.BuscarEmpleadoXId(id);
+                    if (espe == null) return Conflict();
+                    if (espe.id == -1) return NoContent();
+                    else return Ok(espe);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO EMPLEADO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -261,26 +248,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<EmpleadosSAE>> ObtenerEmpleadosXLegajo(string legajo)
+        public ActionResult<EmpleadosSAE> ObtenerEmpleadosXLegajo(string legajo)
         {
             try
             {
-                if (await TienePermiso(45))
+                if ( TienePermiso(45))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@legajo",legajo }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_EMPLEADOS_Buscar_Empleados_legajo", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    else return Ok(new EmpleadosSAE(respuesta.Rows[0]));
+                    EmpleadosSAE? espe = EmployAdapter.BuscarEmpleadoXLegajo(legajo);
+                    if (espe == null) return Conflict();
+                    if (espe.id == -1) return NoContent();
+                    else return Ok(espe);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO EMPLEADO POR LEGAJO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -327,36 +310,31 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<EmpleadosSAE>> ModificarEmpleado(int id, [FromBody, Required] EmpleadosSAE empleado)
+        public ActionResult<EmpleadosSAE> ModificarEmpleado(int id, [FromBody, Required] EmpleadosSAE empleado)
         {
             try
             {
                 if (id != empleado.id) return BadRequest();
                 //El numero de funcion es: 12
-                if (await TienePermiso(44))
+                if ( TienePermiso(44))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    Dictionary<string, string> parametros = new() {
-
-                        { "@id_empleado",empleado.id.ToString() },
-                        { "@legajo", empleado.legajo },
-                        { "@activo",empleado.activo.ToString() },
-                        { "@id_usuario_mod",usuarioActual}
-                    };
-
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_EMPLEADOS_Modificar_Empleado", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(new EmpleadosSAE(respuesta.Rows[0]));
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        empleado = EmployAdapter.ModificarEmpleado(empleado, idUserMod);
+                        if (empleado.id != -1) return Ok(empleado);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO EMPLEADO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -401,34 +379,29 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<EmpleadosSAE>> CrearEmpleado([FromBody] EmpleadosSAE empleado)
+        public ActionResult<EmpleadosSAE> CrearEmpleado([FromBody] EmpleadosSAE empleado)
         {
             try
             {
-                if (await TienePermiso(43))
+                if ( TienePermiso(43))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@legajo", empleado.legajo },
-                            {"@id_usuario_alta",usuarioActual.ToString() }
-                        };
-
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_EMPLEADOS_Crear_Empleado", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Empleado Creado", new EmpleadosSAE(respuesta.Rows[0]));
+                        empleado = EmployAdapter.CrearEmpleado(empleado, idUserCrea);
+                        if (empleado.id != -1) return Created("Empleado Creado", empleado);
+                        else return Conflict();
                     }
-
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO EMPLEADO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -472,30 +445,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<HorariosSAE>>> ObtenerHorarios()
+        public ActionResult<IEnumerable<HorariosSAE>> ObtenerHorarios()
         {
             try
             {
                 //El numero de funcion es: 50
-                if (await TienePermiso(50))
+                if ( TienePermiso(50))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_EMPLEADOS_Listar_horarios_completo");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<HorariosSAE>? listadoHora = EmployAdapter.ObtenerHorarioCompleto();
 
-                    List<HorariosSAE> listadoHorarioCompleto = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        HorariosSAE empleado = new(row);
-                        listadoHorarioCompleto.Add(empleado);
-                    }
-                    return Ok(listadoHorarioCompleto);
+                    if (listadoHora == null) return Conflict();
+                    if (listadoHora.Count == 0) return NoContent();
+
+                    return Ok(listadoHora);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO HORARIOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -539,30 +507,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<HorariosSAE>>> ObtenerHorariosActivos()
+        public ActionResult<IEnumerable<HorariosSAE>> ObtenerHorariosActivos()
         {
             try
             {
                 //El numero de funcion es: 50
-                if (await TienePermiso(50))
+                if ( TienePermiso(50))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_EMPLEADOS_Listar_horarios_activos");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<HorariosSAE>? listadoHora = EmployAdapter.ObtenerHorarioActivo();
 
-                    List<HorariosSAE> listadoHorarioCompleto = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        HorariosSAE empleado = new(row);
-                        listadoHorarioCompleto.Add(empleado);
-                    }
-                    return Ok(listadoHorarioCompleto);
+                    if (listadoHora == null) return Conflict();
+                    if (listadoHora.Count == 0) return NoContent();
+
+                    return Ok(listadoHora);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO HORARIOS ACTIVOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -605,27 +568,22 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<HorariosSAE>> ObtenerHorariosXId(int id_horario)
+        public ActionResult<HorariosSAE> ObtenerHorariosXId(int id_horario)
         {
             try
             {
-                if (await TienePermiso(50))
+                if ( TienePermiso(50))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_horario", id_horario.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_EMPLEADOS_Buscar_Horario_ID", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-
-                    return Ok(new HorariosSAE(respuesta.Rows[0]));
+                    HorariosSAE? hora = EmployAdapter.BuscarHorarioXId(id_horario);
+                    if (hora == null) return Conflict();
+                    if (hora.id == -1) return NoContent();
+                    else return Ok(hora);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO HORARIOS PARA EL EMPLEADO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -670,34 +628,24 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<HorariosSAE>>> ObtenerHorariosXEmpleado(int id_empleado)
+        public ActionResult<IEnumerable<HorariosSAE>> ObtenerHorariosXEmpleado(int id_empleado)
         {
             try
             {
                 //Este lo puede visualizar los empleados
-                if (await TienePermiso(49))
+                if ( TienePermiso(49))
                 {
-                    Dictionary<string, string> parametros = new()
-                    {
-                        { "@id_empleado", id_empleado.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_EMPLEADOS_Buscar_Horario_Empleado", parametros);
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<HorariosSAE>? listadoHora = EmployAdapter.BuscarHorarioXEmpleado(id_empleado);
+                    if (listadoHora == null) return Conflict();
+                    if (listadoHora.Count == 0) return NoContent();
 
-                    List<HorariosSAE> listadoHorarioCompleto = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        HorariosSAE horario = new(row);
-                        listadoHorarioCompleto.Add(horario);
-                    }
-                    return Ok(listadoHorarioCompleto);
+                    return Ok(listadoHora);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR BUSCANDO HORARIOS PARA EL EMPLEADO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -747,37 +695,31 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<HorariosSAE>> ModificarHorario(int id, [FromBody, Required] HorariosSAE horario)
+        public ActionResult<HorariosSAE> ModificarHorario(int id, [FromBody, Required] HorariosSAE horario)
         {
             try
             {
                 if (id != horario.id) return BadRequest();
                 //El numero de funcion es: 47
-                if (await TienePermiso(47))
+                if ( TienePermiso(47))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    string usuarioActual = userData.Split(',')[2];
-                    Dictionary<string, string> parametros = new() {
-                        { "@id_horario",horario.id.ToString() },
-                        { "@hora_inicio", horario.hora_inicio },
-                        { "@hora_fin", horario.hora_fin },
-                        { "@dia", horario.dia.ToString() },
-                        { "@activo",horario.activo.ToString() },
-                        { "@id_empleado",horario.id_empleado.ToString() },
-                        { "@id_usuario_mod",usuarioActual}
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_EMPLEADOS_Modificar_Horario", parametros);
-
-                    //En este caso sino modifica nada es un conflicto en la BD
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                    return Ok(new HorariosSAE(respuesta.Rows[0]));
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        horario = EmployAdapter.ModificarHorario(horario, idUserMod);
+                        if (horario.id != -1) return Ok(horario);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR MODIFICANDO HORARIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -826,37 +768,29 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<HorariosSAE>> CrearHorario(HorariosSAE horario)
+        public ActionResult<HorariosSAE> CrearHorario(HorariosSAE horario)
         {
             try
             {
-                if (await TienePermiso(46))
+                if ( TienePermiso(46))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@hora_inicio", horario.hora_inicio },
-                            { "@hora_fin", horario.hora_fin },
-                            { "@dia", horario.dia.ToString() },
-                            { "@activo",horario.activo.ToString() },
-                            { "@id_empleado",horario.id_empleado.ToString() },
-                            { "@id_usuario_alta",usuarioActual.ToString() }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_EMPLEADOS_Crear_Horario", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Horario Creado", new HorariosSAE(respuesta.Rows[0]));
+                        horario = EmployAdapter.CrearHorario(horario, idUserCrea);
+                        if (horario.id != -1) return Created("Horario Creado", horario);
+                        else return Conflict();
                     }
-
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO HORARIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -892,37 +826,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> EliminarHorario(int id)
+        public ActionResult<string> EliminarHorario(int id)
         {
             try
             {
-                if (await TienePermiso(48))
+                if ( TienePermiso(48))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        Dictionary<string, string> parametros = new() {
-                           { "@id_horario",id.ToString() }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_EMPLEADOS_Eliminar_Horario", parametros);
-
-                        if (respuesta.Rows.Count > 0)
-                        {
-                            if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                            else return Conflict(new HorariosSAE(respuesta.Rows[0]));
-                        }
-                        else return Ok("Horario Eliminado");
-
+                        if (EmployAdapter.EliminarHorario(id)) return Ok("Horario Eliminado");
+                        else return Conflict();
                     }
-
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR ELIMINANDO HORARIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -965,30 +887,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<ItemLinktree>>> ObtenerLinktree()
+        public ActionResult<IEnumerable<ItemLinktree>> ObtenerLinktree()
         {
             try
             {
                 //El numero de funcion es: 140
-                if (await TienePermiso(140))
+                if (TienePermiso(140))
                 {
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteView(_config, "MODULO_EMPLEADOS_Listar_Linktree");
-                    if (respuesta.Rows.Count == 0) return NoContent();
-                    if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
+                    List<ItemLinktree>? linktree = EmployAdapter.ObtenerLinktree();
 
-                    List<ItemLinktree> linktree = new();
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        ItemLinktree item = new(row);
-                        linktree.Add(item);
-                    }
+                    if (linktree == null) return Conflict();
+                    if (linktree.Count == 0) return NoContent();
+
                     return Ok(linktree);
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO EMPLEADOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1025,26 +942,21 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> ContarVisualizacionItem(int id)
+        public ActionResult<string> ContarVisualizacionItem(int id)
         {
             try
             {
                 //El numero de funcion es: 140
-                if (await TienePermiso(140))
+                if ( TienePermiso(140))
                 {
-                    Dictionary<string, string> parametros = new() {
-                           { "@id_item_linktree",id.ToString() }
-                    };
-                    DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_EMPLEADOS_Visualizacion_Item_Linktree", parametros);
-
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR" || respuesta.Rows[0][0].ToString() != "VISUALIZADO") return Conflict();
+                    if (EmployAdapter.ContarVisualizaconLink(id)) return Conflict();
                     else return Ok("Visualizado");
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR LISTANDO EMPLEADOS");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1091,34 +1003,29 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<ItemLinktree>> CrearItemLinkTree(ItemLinktree item)
+        public ActionResult<ItemLinktree> CrearItemLinkTree(ItemLinktree item)
         {
             try
             {
-                if (await TienePermiso(138))
+                if ( TienePermiso(138))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData == null || userData == "NO DATA") return Unauthorized();
-                    else
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        string usuarioActual = userData.Split(',')[2];
-                        Dictionary<string, string> parametros = new() {
-                            { "@titulo",item.titulo },
-                            { "@id_index_ico", item.id_index_ico.ToString() },
-                            { "@url", item.hipervinculo},
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_EMPLEADOS_Crear_Item_Linktree", parametros);
-                        //En este caso sino crea es un error en la BD
-                        if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                        return Created("Item Creado", new ItemLinktree(respuesta.Rows[0]));
+                        item = EmployAdapter.CrearItemLinkTree(item);
+                        if (item.id != -1) return Created("Item Creado", item);
+                        else return Conflict();
                     }
-
+                    else return Unauthorized();
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR CREANDO ITEM LINKTREE");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1154,37 +1061,25 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> EliminarItem(int id)
+        public ActionResult<string> EliminarItem(int id)
         {
             try
             {
-                if (await TienePermiso(139))
+                if ( TienePermiso(139))
                 {
                     string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
                     if (userData == null || userData == "NO DATA") return Unauthorized();
                     else
                     {
-                        Dictionary<string, string> parametros = new() {
-                           { "@id_item_linktree",id.ToString() }
-                        };
-                        DataTable respuesta = GeneralAdapterSQL.ExecuteStoredProcedure(_config, "MODULO_EMPLEADOS_Eliminar_Item_Linktree", parametros);
-
-                        if (respuesta.Rows.Count > 0)
-                        {
-                            if (respuesta.Rows[0][0].ToString() == "ERROR") return Conflict();
-                            //Si es mayor a 0 significa que no se elimino asi que devolvemos dicho registro
-                            else return Conflict(new ItemLinktree(respuesta.Rows[0]));
-                        }
-                        else return Ok("Item Eliminado");
-
+                        if (EmployAdapter.EliminarLinkTree (id)) return Ok("Item Eliminado");
+                        else return Conflict();
                     }
-
                 }
                 else return Forbid();
             }
             catch (Exception ex)
             {
-                _logger.RegistrarERROR(ex, "ERROR ELIMINANDO HORARIO");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
         }
@@ -1193,17 +1088,12 @@ namespace API_WEB_SAE_6.Controllers
         /// </summary>
         /// <param name="id_funcion">Es la funcion que queremos validar </param>
         /// <returns> True = Tiene permisos || False = No tiene permisos </returns>
-        private async Task<bool> TienePermiso(int id_funcion)
+        private bool TienePermiso(int id_funcion)
         {
             string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
             if (userData == null || userData == "NO DATA") return false;
-
-            int id_perfil;
-            try { id_perfil = int.Parse(userData.Split(',')[1]); }
-            catch (Exception) { return false; }
-
-            PerfilesController p = new();
-            return await p.TienePermiso(_config, id_perfil, id_funcion);
+            if (int.TryParse(userData.Split(',')[1], out int id_perfil)) return UserAdapter.TienePermiso(id_funcion, id_perfil);
+            else return false;
         }
     }
 }
