@@ -1,4 +1,6 @@
-﻿namespace API_WEB_SAE_6.Models
+﻿using System.Data;
+
+namespace API_WEB_SAE_6.Models
 {
     /// <summary>
     /// Representa a una especialidad medica, con su informacion basica, se puede usar para mostrar la informacion de las especialidades medicas en la aplicacion
@@ -25,10 +27,7 @@
         /// <summary>
         /// El constructor por defecto es necesario para poder crear objetos de la clase Especialidad sin necesidad de pasarle parametros, se puede usar para crear objetos vacios o para asignar los valores posteriormente, no hace nada en particular, solo inicializa los atributos con sus valores por defecto
         /// </summary>
-        public Especialidad()
-        {
-
-        }
+        public Especialidad(){}
         /// <summary>
         /// El constructor con parametros es necesario para poder crear objetos de la clase Especialidad con los valores que se le pasan por parametro, se puede usar para crear objetos con la informacion completa de una especialidad medica, asigna los valores de los atributos con los valores que se le pasan por parametro, no hace nada en particular, solo asigna los valores de los atributos con los valores que se le pasan por parametro
         /// </summary>
@@ -42,6 +41,17 @@
             this.nombre = nombre;
             this.descripcion = descripcion;
             activo = estaActivo;
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="data"></param>
+        public Especialidad(DataRow data)
+        {
+            id =int.Parse( data["id"].ToString() ?? "-1");
+            nombre = data["nombre"].ToString() ?? "";
+            descripcion = data["descripcion"].ToString() ?? "";
+            activo = (data["activo"].ToString() == "1");
         }
     }
 }

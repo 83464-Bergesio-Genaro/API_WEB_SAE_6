@@ -15,7 +15,136 @@ namespace API_WEB_SAE_6.Adapters
         /// Define que tipo de base de datos se usa para consumir la informacion
         /// </summary>
         public string MotorDB { get; set; } = motorDB;
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public List<Especialidad>? ObtenerEspecialidadesCompleto()
+        {
+            string method = "ObtenerEspecialidadCompleto";
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    GeneralAdapterMySQL consultor = new();
+                    DataTable respuesta = consultor.ExecuteView("MODULO_SALUD_Listar_Especialidades_Medicas");
+                    //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
+                    if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
 
+                    List<Especialidad> especialidad = [];
+                    foreach (DataRow row in respuesta.Rows)
+                    {
+                        Especialidad espe = new(row);
+                        especialidad.Add(espe);
+                    }
+                    return especialidad;
+                }
+                else return null;
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, "SaludAdapter");
+                return null;
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public List<Especialidad>? ObtenerEspecialidadesActivas()
+        {
+            string method = "ObtenerEspecialidadesActivas";
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    GeneralAdapterMySQL consultor = new();
+                    DataTable respuesta = consultor.ExecuteView("MODULO_SALUD_Listar_Especialidades_Medicas_Activas");
+                    //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
+                    if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
+
+                    List<Especialidad> especialidad = [];
+                    foreach (DataRow row in respuesta.Rows)
+                    {
+                        Especialidad espe = new(row);
+                        especialidad.Add(espe);
+                    }
+                    return especialidad;
+                }
+                else return null;
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, "SaludAdapter");
+                return null;
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="espe"></param>
+        /// <returns></returns>
+        public Especialidad ModificarEspecialidadMed(Especialidad espe)
+        {
+            string method = "ModificarEspecialidadMed";
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_especialidad", MySqlDbType.VarChar) { Value = espe.id },
+                        new("i_nombre", MySqlDbType.VarChar) { Value = espe.nombre },
+                        new("i_descripcion", MySqlDbType.VarChar) { Value = espe.descripcion },
+                        new("i_activo", MySqlDbType.Bit) { Value = espe.activo  }
+                        ];
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_SALUD_Modificar_Especialidad_Medica", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                else return new();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, "SaludAdapter");
+                return new();
+            }
+        }
+        /// <summary>
+        /// Crea un nuevo especialista medico, devuelve el especialista medico creado con su informacion completa, devuelve un objeto vacio si el resultado es correcto pero no hay datos, devuelve null si ocurre un error
+        /// </summary>
+        /// <param name="especialista"></param>
+        /// <returns></returns>
+        public Especialidad CrearEspecialidad(Especialidad especialista)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_nombre", MySqlDbType.VarChar) { Value = especialista.nombre},
+                        new("i_descripcion", MySqlDbType.VarChar) { Value = especialista.descripcion }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_SALUD_Crear_Especialidad_Medica", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearEspecialidad", ex.Message, "SaludAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
         /// <summary>
         /// Obtiene un listado completo de especialistas medicos, devuelve null si ocurre un error, devuelve una lista vacia si el resultado es correcto pero no hay datos
         /// </summary>
@@ -265,12 +394,12 @@ namespace API_WEB_SAE_6.Adapters
                 {
                     List<MySqlParameter> parameters = [
                         new("i_id_horario", MySqlDbType.Int32) { Value = horarioMedico.id },
-                        new("i_hora_ini", MySqlDbType.Date) { Value = horarioMedico.hora_inicio},
-                        new("i_hora_fin", MySqlDbType.Date) { Value = horarioMedico.hora_fin},
+                        new("i_hora_ini", MySqlDbType.Time) { Value = horarioMedico.hora_inicio},
+                        new("i_hora_fin", MySqlDbType.Time) { Value = horarioMedico.hora_fin},
                         new("i_dia", MySqlDbType.Int32) { Value = horarioMedico.dia },
                         new("i_cuil_es", MySqlDbType.VarChar) { Value =horarioMedico.cuil_especialista},
                         new("i_activo", MySqlDbType.Bit) { Value = horarioMedico.activo},
-                        new("id_usuario_mod", MySqlDbType.Int32) { Value = idModificacion}
+                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idModificacion}
                         ];
                     GeneralAdapterMySQL consult = new();
                     DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_SALUD_Modificar_Horario_Medico", parameters);
@@ -281,7 +410,7 @@ namespace API_WEB_SAE_6.Adapters
             }
             catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarEspacioDeportivo", ex.Message, "DeporteAdapter");
+                Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarHorarioSalud", ex.Message, "SaludAdapter");
                 return new();
             }
         }
@@ -328,7 +457,7 @@ namespace API_WEB_SAE_6.Adapters
         /// <returns></returns>
         public bool EliminarHorario(int idHorario)
         {
-            List<MySqlParameter> parameters = [new("i_id_horario", MySqlDbType.Int32) { Value = idHorario }];
+            List<MySqlParameter> parameters = [new("i_id_horario_medico", MySqlDbType.Int32) { Value = idHorario }];
 
             GeneralAdapterMySQL consult = new();
             DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_SALUD_Eliminar_Horario_Medico", parameters);
@@ -353,7 +482,7 @@ namespace API_WEB_SAE_6.Adapters
                         new("i_cuil", MySqlDbType.VarChar) { Value =faltaEsp.cuil},
                         new("i_fecha_falta", MySqlDbType.Date) { Value = faltaEsp.fecha_alta},
                         new("i_observacion", MySqlDbType.VarChar) { Value = faltaEsp.observacion },
-                        new("id_usuario_alta", MySqlDbType.Int32) { Value = idCreacion}
+                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idCreacion}
                         ];
 
                     GeneralAdapterMySQL consult = new();
@@ -422,7 +551,7 @@ namespace API_WEB_SAE_6.Adapters
                         new("i_fecha_fin", MySqlDbType.Date) { Value = cursoMedico.fecha_fin},
                         new("i_nombre_curso", MySqlDbType.Int32) { Value = cursoMedico.nombre_curso },
                         new("i_nombre_docente", MySqlDbType.VarChar) { Value =cursoMedico.nombre_docente},
-                        new("i_cupo_maximo", MySqlDbType.Bit) { Value = cursoMedico.activo},
+                        new("i_cupo_maximo", MySqlDbType.Bit) { Value = cursoMedico.cupo_maximo},
                         new("i_activo", MySqlDbType.Int32) { Value = cursoMedico.activo}
                         ];
                     GeneralAdapterMySQL consult = new();

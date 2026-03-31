@@ -495,7 +495,7 @@ namespace API_WEB_SAE_6.Adapters
                 {
                     //Inicializa un valor y le asigna el tipo
                     List<MySqlParameter> parameters = [
-                        new("i_titulo", MySqlDbType.Int32) { Value = item.titulo },
+                        new("i_titulo", MySqlDbType.VarChar) { Value = item.titulo },
                         new("i_id_index_ico", MySqlDbType.Int32) { Value = item.id_index_ico },
                         new("i_url", MySqlDbType.VarChar) { Value = item.hipervinculo }];
 
@@ -507,7 +507,7 @@ namespace API_WEB_SAE_6.Adapters
                 }
                 catch (Exception ex)
                 {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearHorario", ex.Message, "EmpleadoAdapter");
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearItem", ex.Message, "EmpleadoAdapter");
                     return new();
                 }
             }

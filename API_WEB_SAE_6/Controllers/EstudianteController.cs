@@ -178,11 +178,10 @@ namespace API_WEB_SAE_6.Controllers
                     string idPerfil = userData.Split(',')[1];
                     if (idPerfil == "2" || idPerfil == "5" || legajoRegistrado == legajo)
                     {
-                        List<DocumentosEstudiante>? documentos = EstudianteAdapter.BuscarDocumentosXLegajo(legajoRegistrado);
+                        List<DocumentosEstudiante>? documentos = EstudianteAdapter.BuscarDocumentosXLegajo(legajo);
 
                         if (documentos != null &&
-                            documentos.Count > 0 &&
-                            legajoRegistrado == documentos[0].legajo) return Ok(documentos);
+                            documentos.Count > 0 ) return Ok(documentos);
                         else
                         {
                             Logger.RegistrarDatos(Logger.LogOptions.Alerta, "DescargarDocumentacionXId", "Intento descargar documentacion que no era suya conociendo el ID del mismo. HOST:" + HttpContext.Request.Host.Value, ControllerName);
@@ -241,6 +240,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpPut("{id}")]
         [ActionName("ModificarDocumento")]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(DocumentosEstudiante), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -248,7 +248,7 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<DocumentosEstudiante>> ModificarDocumento(int id, [FromBody] IFormFile documento)
+        public async Task<ActionResult<DocumentosEstudiante>> ModificarDocumento(int id,IFormFile documento)
         {
             try
             {
@@ -347,8 +347,9 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="413" >El archivo que se cargo supero los 50Mb </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpPost]
+        [HttpPost("{idTipoDocumento}")]
         [ActionName("CrearDocumentoEstudiante")]
+        [Consumes("multipart/form-data")]
         [Authorize]
         [ProducesResponseType(typeof(DocumentosEstudiante), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -357,7 +358,7 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task <ActionResult<DocumentosEstudiante>> CrearDocumentoEstudiante([FromRoute]int idTipoDocumento,[FromBody]IFormFile archivo)
+        public async Task <ActionResult<DocumentosEstudiante>> CrearDocumentoEstudiante(int idTipoDocumento,IFormFile archivo)
         {
             try
             {

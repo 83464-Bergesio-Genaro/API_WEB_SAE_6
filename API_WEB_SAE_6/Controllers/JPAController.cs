@@ -624,7 +624,7 @@ namespace API_WEB_SAE_6.Controllers
         ///     
         ///     RESPONSE:
         ///     {
-        ///         "Stand Eliminado"
+        ///         "Stand Eliminado" (ORA ORA ORA ORA ORA ORA)
         ///     }
         ///     
         /// </remarks>

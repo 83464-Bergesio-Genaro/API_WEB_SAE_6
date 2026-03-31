@@ -639,6 +639,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <param name="nuevoUsuario">El usuario que se utiliza en la aplicacion</param>
         /// <param name="nombres">Los nombres de dicha persona en el sistema academico</param>
         /// <param name="apellidos">Los apellidos de dicha persona en el sistema academico</param>
+        /// <param name="id_especialidad">La especialidad la cual cursa. Puede ser nula en caso de empleados</param>
         /// <returns>Un usuario creado en la base de datos o error</returns>
         /// <remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
@@ -653,8 +654,9 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<Usuarios> CrearRegistroUsuario(
             [FromBody]Usuarios nuevoUsuario,
-            [FromQuery] string nombres, 
-            string apellidos)
+            [FromQuery] string nombres,
+            [FromQuery] string apellidos,
+            [FromQuery] int? id_especialidad)
         {
             try
             {
@@ -667,7 +669,7 @@ namespace API_WEB_SAE_6.Controllers
                         userData != "NO DATA" &&
                         int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        nuevoUsuario = UserAdapter.CrearRegistroConUsuario(nuevoUsuario,nombres,apellidos, idUserCrea);
+                        nuevoUsuario = UserAdapter.CrearRegistroConUsuario(nuevoUsuario,nombres,apellidos, id_especialidad, idUserCrea);
                         if (nuevoUsuario.id != -1) return Created("Usuario Creado", nuevoUsuario);
                         else return Conflict();
                     }

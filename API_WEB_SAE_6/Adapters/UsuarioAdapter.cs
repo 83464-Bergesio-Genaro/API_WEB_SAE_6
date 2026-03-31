@@ -210,9 +210,10 @@ namespace API_WEB_SAE_6.Adapters
         /// <param name="user"></param>
         /// <param name="nombres"></param>
         /// <param name="apellidos"></param>
+        /// <param name="id_especialidad"> La carrera que cursa, puede ser nula en caso de empleados</param>
         /// <param name="idUserCreacion"></param>
         /// <returns></returns>
-        public Usuarios CrearRegistroConUsuario(Usuarios user,string nombres,string apellidos, int idUserCreacion)
+        public Usuarios CrearRegistroConUsuario(Usuarios user,string nombres,string apellidos,int? id_especialidad, int idUserCreacion)
         {
             if (MotorDB == "MySQL")
             {
@@ -223,6 +224,7 @@ namespace API_WEB_SAE_6.Adapters
                         new("i_legajo", MySqlDbType.VarChar) { Value = user.legajo },
                         new("i_nombres", MySqlDbType.VarChar) { Value = nombres },
                         new("i_apellidos", MySqlDbType.VarChar) { Value = apellidos},
+                        new("i_id_especialidad", MySqlDbType.VarChar) { Value = id_especialidad},
                         new("i_nombre_usuario", MySqlDbType.VarChar) { Value = user.nombre_usuario },
                         new("i_id_perfil", MySqlDbType.Int32) { Value = user.id_perfil },
                         new("i_id_usuario_alta", MySqlDbType.Bit) { Value = user.activo }

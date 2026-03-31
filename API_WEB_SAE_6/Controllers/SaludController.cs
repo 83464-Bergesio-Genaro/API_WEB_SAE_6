@@ -36,6 +36,283 @@ namespace API_WEB_SAE_6.Controllers
         /// </summary>
         public SaludController() { }
         /// <summary>
+        /// Recupera todos las especialidades medicas del area
+        /// </summary>
+        /// <returns> Un listado de todas las especialidades</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Salud/ObtenerEspecialidadesCompleto/
+        ///     
+        ///     RESPONSE:
+        ///     [
+        ///         {
+        ///             "id": 0,
+        ///             "nombre": "string",
+        ///             "descripcion": "string",
+        ///             "activo": true
+        ///         }  
+        ///     ]
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve un listado completo de especialidades </response>
+        /// <response code="204" >No se encontro ninguna especialidad </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>   
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet]
+        [ActionName("ObtenerEspecialidadesCompleto")]
+        [Authorize]
+        [ProducesResponseType(typeof(IEnumerable<Especialidad>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<IEnumerable<Especialidad>> ObtenerEspecialidadesCompleto()
+        {
+            try
+            {
+                //El numero de funcion es: 69
+                if (TienePermiso(69))
+                {
+                    List<Especialidad>? especialidadesMedicas = HealthAdapter.ObtenerEspecialidadesCompleto();
+
+                    if (especialidadesMedicas == null) return Conflict();
+                    if (especialidadesMedicas.Count == 0) return NoContent();
+
+                    return Ok(especialidadesMedicas);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Recupera todos las especialidades medicas del area
+        /// </summary>
+        /// <returns> Un listado de todas las especialidades</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Salud/ObtenerEspecialidadesCompleto/
+        ///     
+        ///     RESPONSE:
+        ///     [
+        ///         {
+        ///             "id": 0,
+        ///             "nombre": "string",
+        ///             "descripcion": "string",
+        ///             "activo": true
+        ///         }  
+        ///     ]
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve un listado completo de especialidades </response>
+        /// <response code="204" >No se encontro ninguna especialidad </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>   
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet]
+        [ActionName("ObtenerEspecialidadesActivas")]
+        [Authorize]
+        [ProducesResponseType(typeof(IEnumerable<Especialidad>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<IEnumerable<Especialidad>> ObtenerEspecialidadesActivas()
+        {
+            try
+            {
+                //El numero de funcion es: 69
+                if (TienePermiso(69))
+                {
+                    List<Especialidad>? especialidadesMedicas = HealthAdapter.ObtenerEspecialidadesActivas();
+
+                    if (especialidadesMedicas == null) return Conflict();
+                    if (especialidadesMedicas.Count == 0) return NoContent();
+
+                    return Ok(especialidadesMedicas);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+
+        /// <summary>
+        /// Permite la modificacion de una especialidad medica
+        /// </summary>
+        /// <param name="id_especialidad"> El ID de la especialdiad a modificar</param>
+        /// <param name="especialidad"> Los datos modificados de la especialidad</param>
+        /// <returns>Una especialidad modificada en BD</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     PUT /api/Salud/ModificarEspecialista/{id_especialidad}
+        ///     BODY:
+        ///     {
+        ///         "id": 0,
+        ///         "nombre": "string",
+        ///         "descripcion": "string",
+        ///         "activo": true
+        ///     }  
+        /// 
+        ///     RESPONSE:
+        ///     {
+        ///         "id": 0,
+        ///         "nombre": "string",
+        ///         "descripcion": "string",
+        ///         "activo": true
+        ///     }  
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve la especialidad modificada en BD </response>
+        /// <response code="400" >Ocurre un error en la consulta o el CUIL es diferente que el del especialista a modificar </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y no se modifica el usuario </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpPut("{id_especialidad}")]
+        [ActionName("ModificarEspecialidad")]
+        [Authorize]
+        [ProducesResponseType(typeof(EspecialistaMedico), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<EspecialistaMedico> ModificarEspecialidad(int id_especialidad, [FromBody, Required] Especialidad especialidad)
+        {
+            try
+            {
+                if (id_especialidad != especialidad.id) return BadRequest();
+                //El numero de funcion es: 68
+                if (TienePermiso(68))
+                {
+                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        especialidad = HealthAdapter.ModificarEspecialidadMed(especialidad);
+                        if (especialidad.id != -1) return Ok(especialidad);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Permite crear un especialista
+        /// </summary>
+        /// <param name="espe">El especialista que deseamos crear, se envia en el Body</param>
+        /// <returns>Un especialista creado en la base de datos o error</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     POST /api/Salud/CrearEspecialista/
+        ///     BODY:
+        ///     {
+        ///        "cuil": "string",
+        ///        "apellido": "string",
+        ///        "nombre": "string",
+        ///        "presta_servicio": true,
+        ///        "especialidad": {
+        ///             "id": 0,
+        ///             "nombre": "string",
+        ///             "descripcion": "string",
+        ///             "activo": true
+        ///         }  
+        ///     }
+        ///     (No se crean los datos de la especialidad sino que le asignamos el id_especialidad) 
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///        "cuil": "string",
+        ///        "apellido": "string",
+        ///        "nombre": "string",
+        ///        "presta_servicio": true,
+        ///        "especialidad": {
+        ///             "id": 0,
+        ///             "nombre": "string",
+        ///             "descripcion": "string",
+        ///             "activo": true
+        ///         }  
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="201" >Devuelve el especialista creado en la BD </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El especialista no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpPost]
+        [ActionName("CrearEspecialidad")]
+        [Authorize]
+        [ProducesResponseType(typeof(EspecialistaMedico), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<EspecialistaMedico> CrearEspecialidad([FromBody] Especialidad espe)
+        {
+            try
+            {
+                if (TienePermiso(67))
+                {
+                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserCrea))
+                    {
+                        espe = HealthAdapter.CrearEspecialidad(espe);
+                        if (espe.id != -1) return Created("Especialidad Creada", espe);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
         /// Recupera todos los especialistas medicos del area
         /// </summary>
         /// <returns> Un listado de todos los empleados del area medica</returns>

@@ -432,7 +432,7 @@ namespace API_WEB_SAE_6.Adapters
                     //Inicializa un valor y le asigna el tipo
                     List<MySqlParameter> parameters = [new("i_id_deporte", MySqlDbType.Int32) { Value = idDeporte }];
                     GeneralAdapterMySQL consultor = new();
-                    DataTable respuesta = consultor.ExecuteStoredProcedure("MODULO_DEPORTES_Buscar_Deportistas_Legajo", parameters);
+                    DataTable respuesta = consultor.ExecuteStoredProcedure("MODULO_DEPORTES_Buscar_Deportistas_Deporte", parameters);
 
                     if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
 
@@ -936,8 +936,9 @@ namespace API_WEB_SAE_6.Adapters
                     List<MySqlParameter> parameters =
                         [new("i_cuil_doc", MySqlDbType.VarChar) { Value = docente.cuil},
                         new("i_nombres", MySqlDbType.VarChar) { Value = docente.nombres},
+                        new("i_apellidos", MySqlDbType.VarChar) { Value = docente.apellidos},
                         new("i_activo", MySqlDbType.Bit) { Value = docente.activo},
-                        new("i_fecha_nacimiento", MySqlDbType.VarChar) { Value = docente.fecha_nacimiento},
+                        new("i_fecha_nacimiento", MySqlDbType.Date) { Value = docente.fecha_nacimiento},
                         new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }];
 
                     GeneralAdapterMySQL consult = new();
@@ -1041,17 +1042,17 @@ namespace API_WEB_SAE_6.Adapters
                     //Inicializa un valor y le asigna el tipo
                     List<MySqlParameter> parameters =
                         [new("i_id_horario", MySqlDbType.Int32) { Value = horario.id},
-                        new("i_id_espacio", MySqlDbType.VarChar) { Value = horario.nombre_deporte},
+                        new("i_id_espacio", MySqlDbType.VarChar) { Value = horario.id_espacio_deportivo},
                         new("i_id_deporte", MySqlDbType.Int32) { Value = horario.id_deporte},
                         new("i_hora_ini", MySqlDbType.VarChar) { Value = horario.hora_inicio},
                         new("i_hora_fin", MySqlDbType.VarChar) { Value = horario.hora_fin},
                         new("i_activo", MySqlDbType.Bit) { Value = horario.activo},
                         new("i_cuil_doc", MySqlDbType.VarChar) { Value = horario.cuil_docente},
-                        new("i_dia", MySqlDbType.Int32) { Value = horario.dia}
+                        new("i_dia", MySqlDbType.Int32) { Value = horario.dia},
                         ];
 
                     GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Modificar_Torneo", parameters);
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_DEPORTES_Modificar_Horario", parameters);
                     if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
                     else return new(respuesta.Rows[0]);
                 }
@@ -1214,7 +1215,7 @@ namespace API_WEB_SAE_6.Adapters
                         new("i_hora_fin", MySqlDbType.Time) { Value = horario.hora_fin },
                         new("i_activo", MySqlDbType.Bit) { Value = horario.activo},
                         new("i_cuil_doc", MySqlDbType.VarChar) { Value = horario.cuil_docente},
-                        new("dia", MySqlDbType.Int32) { Value = horario.dia}
+                        new("i_dia", MySqlDbType.Int32) { Value = horario.dia}
                         ];
 
                     GeneralAdapterMySQL consult = new();
