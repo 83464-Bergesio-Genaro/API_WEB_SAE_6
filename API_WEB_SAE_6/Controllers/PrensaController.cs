@@ -776,8 +776,9 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="413" >El archivo que se cargo supero los 50Mb </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpPost]
-        [ActionName("CrearDocumentoPrensaLibre")]
         [Authorize]
+        [Consumes("multipart/form-data")]
+        [ActionName("CrearDocumentoPrensaLibre")]
         [ProducesResponseType(typeof(DocumentosPrensa), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -785,7 +786,7 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<string>> CrearDocumentoPrensaLibre(int idTipoDocumento,[FromBody]IFormFile archivo)
+        public async Task<ActionResult<string>> CrearDocumentoPrensaLibre(int idTipoDocumento,IFormFile archivo)
         {
             try
             {
@@ -885,8 +886,9 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="413" >El archivo que se cargo supero los 50Mb </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpPost]
-        [ActionName("CrearDocumentoPrensaInterno")]
         [Authorize]
+        [Consumes("multipart/form-data")]
+        [ActionName("CrearDocumentoPrensaInterno")]
         [ProducesResponseType(typeof(string), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
