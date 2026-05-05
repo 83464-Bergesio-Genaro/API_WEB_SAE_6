@@ -62,7 +62,7 @@ namespace API_WEB_SAE_6.Logs
             //Si utiliza la barra invertida es que estamos en Windows
             if (Directory.Exists(baseDirectory) && baseDirectory.Contains(@"\"))
                 separador = "\\";
-            //En teoria el separador se define por el sistema operativo
+            //En teoria el separador se define por el sistema operativo, curiosamente el path combine hace que se rompa por los permisos.
             ErrorPath = baseDirectory + separador + "Logs" + separador + "Registros" + separador;
             WarningsPath = baseDirectory + separador + "Logs" + separador + "Alertas" + separador;
             SessionsPath = baseDirectory + separador + "Logs" + separador + "Sesiones" + separador;

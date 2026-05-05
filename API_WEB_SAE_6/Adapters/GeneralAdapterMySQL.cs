@@ -2,8 +2,6 @@
 using API_WEB_SAE_6.Tools;
 using MySqlConnector;
 using System.Data;
-using System.Data.Common;
-using System.Text;
 
 namespace API_WEB_SAE_6.Adapters
 {

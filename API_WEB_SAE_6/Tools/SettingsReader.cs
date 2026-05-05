@@ -19,7 +19,7 @@ namespace API_WEB_SAE_6.Tools
         /// <summary>
         /// Que entorno tenemos
         /// </summary>
-        public string Enviroment { get; set; } = "";
+        public string Environment { get; set; } = "";
         /// <summary>
         /// La clave que utilizamos para el cifrado
         /// </summary>
@@ -55,15 +55,15 @@ namespace API_WEB_SAE_6.Tools
             switch (schema)
             {
                 case "ConexionesMySQL":
-                    if (ConexionesMySQL.TryGetValue(Enviroment, out value)) return value;
+                    if (ConexionesMySQL.TryGetValue(Environment, out value)) return value;
                     else return "ERROR";
 
                 case "ConexionesMSSQL":
-                    if (ConexionesMSSQL.TryGetValue(Enviroment, out value)) return value;
+                    if (ConexionesMSSQL.TryGetValue(Environment, out value)) return value;
                     else return "ERROR";
 
                 default:
-                    if (ConexionesMySQL.TryGetValue(Enviroment, out value)) return value;
+                    if (ConexionesMySQL.TryGetValue(Environment, out value)) return value;
                     else return "ERROR";
             }
         }
@@ -75,7 +75,7 @@ namespace API_WEB_SAE_6.Tools
         {
             //Al principio quise resolver todo haciendo un diccionario de diccionarios pero JSON no estaba
             //cooperando asi que hice un atributo por cada esquema que es su propio esquema de conexiones.
-            if (FilesLocation.TryGetValue(Enviroment, out string? value)) return value;
+            if (FilesLocation.TryGetValue(Environment, out string? value)) return value;
             else return "ERROR";
 
         }
@@ -88,7 +88,7 @@ namespace API_WEB_SAE_6.Tools
             try
             {
                 if (currentInstance != null) return currentInstance;
-                string baseDirectory = Environment.CurrentDirectory;
+                string baseDirectory = System.Environment.CurrentDirectory;
                 string separador = "/";
                 //Si utiliza la barra invertida es que estamos en Windows
                 if (Directory.Exists(baseDirectory) && baseDirectory.Contains(@"\"))
@@ -100,8 +100,12 @@ namespace API_WEB_SAE_6.Tools
                 using StreamReader reader = new(file);
                 //Lo lee y convierte en String
                 string json = reader.ReadToEnd();
-                //Prueba convirtiendolo a la clase que creamos
-                return currentInstance = JsonConvert.DeserializeObject<SettingsReader>(json) ?? new();
+                currentInstance = JsonConvert.DeserializeObject<SettingsReader>(json) ?? new();
+
+                //Prueba si tiene variables de entorno que se utilizan en docker.
+                currentInstance.Environment = System.Environment.GetEnvironmentVariable("Environment")?.ToUpper() ?? currentInstance.Environment;
+
+                return currentInstance;
             }
             catch (Exception)
             {
