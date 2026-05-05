@@ -140,6 +140,82 @@ namespace API_WEB_SAE_6.Adapters
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="becario"></param>
+        /// <param name="idUserMod"></param>
+        /// <returns></returns>
+        public BecariosSAE ModificarBecario(BecariosSAE becario, int idUserMod)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_becario", MySqlDbType.Int32) { Value = becario.id },
+                        new("i_legajo", MySqlDbType.VarChar) { Value = becario.legajo },
+                        new("i_alquila", MySqlDbType.Bit) { Value = becario.alquila },
+                        new("i_fecha_solicitud", MySqlDbType.Date) { Value = becario.fecha_solicitud },
+                        new("i_aceptado", MySqlDbType.Bit) { Value = becario.aceptado_inicio },
+                        new("i_puede_pagarle", MySqlDbType.Bit) { Value = becario.puede_pagarle },
+                        new("i_activo", MySqlDbType.Bit) { Value = becario.activo },
+                        new("i_anio_beca", MySqlDbType.Int32) { Value = becario.anio_beca },
+                        new("i_id_becario_previo", MySqlDbType.Int32) { Value = becario.id_becario_previo },
+                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Becario_SAE", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarBecario", ex.Message, "BecaAdapter");
+                    return new();
+                }
+
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="becario"></param>
+        /// <param name="idUserCreacion"></param>
+        /// <returns></returns>
+        public BecariosSAE CrearBecario(BecariosSAE becario, int idUserCreacion)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_legajo", MySqlDbType.VarChar) { Value = becario.legajo },
+                        new("i_alquila", MySqlDbType.Bit) { Value = becario.alquila },
+                        new("i_fecha_solicitud", MySqlDbType.Date) { Value = becario.fecha_solicitud },
+                        new("i_anio_beca", MySqlDbType.Int32) { Value = becario.anio_beca },
+                        new("i_id_becario_previo", MySqlDbType.Int32) { Value = becario.id_becario_previo },
+                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idUserCreacion }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Crear_Becario_SAE", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearBecario", ex.Message, "BecaAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
         /// <returns></returns>
         public List<BecariosSAEEconomica>? ObtenerBecariosEconomica()
         {
@@ -255,6 +331,72 @@ namespace API_WEB_SAE_6.Adapters
                 {
                     Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarBecarioEconomicaXLegajo", ex.Message, "BecaAdapter");
                     return null;
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="becario"></param>
+        /// <param name="idUserMod"></param>
+        /// <returns></returns>
+        public BecariosSAEEconomica ModificarBecarioEconomica(BecariosSAEEconomica becario, int idUserMod)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_economica", MySqlDbType.Int32) { Value = becario.id },
+                        new("i_id_becario", MySqlDbType.Int32) { Value = becario.becario.id },
+                        new("i_entrevista", MySqlDbType.Bit) { Value = becario.entrevista_realizada },
+                        new("i_modulos", MySqlDbType.Int32) { Value = becario.modulos_asignados },
+                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Becario_Economica", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarBecarioEconomica", ex.Message, "BecaAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="idBecario"></param>
+        /// <param name="idUserCreacion"></param>
+        /// <returns></returns>
+        public BecariosSAEEconomica CrearBecarioEconomica(int idBecario, int idUserCreacion)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_becario", MySqlDbType.Int32) { Value = idBecario},
+                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idUserCreacion }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Crear_Becario_Economica", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearBecario", ex.Message, "BecaAdapter");
+                    return new();
                 }
             }
             else return new();
@@ -384,6 +526,74 @@ namespace API_WEB_SAE_6.Adapters
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="becario"></param>
+        /// <param name="idUserMod"></param>
+        /// <returns></returns>
+        public BecariosSAEInvestigacion ModificarBecarioInvestigacion(BecariosSAEInvestigacion becario, int idUserMod)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_investigacion", MySqlDbType.Int32) { Value = becario.id },
+                        new("i_id_becario", MySqlDbType.Int32) { Value = becario.becario.id },
+                        new("i_id_proyecto", MySqlDbType.Int32) { Value = becario.proyecto_investigacion?.id },
+                        new("i_modulos", MySqlDbType.Int32) { Value = becario.modulos_asignados },
+                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Becario_Investigacion", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarBecarioInvestigacion", ex.Message, "BecaAdapter");
+                    return new();
+                }
+
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="idBecario"></param>
+        /// <param name="idUserCreacion"></param>
+        /// <returns></returns>
+        public BecariosSAEInvestigacion CrearBecarioInvestigacion(int idBecario, int idUserCreacion)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_becario", MySqlDbType.Int32) { Value = idBecario},
+                        new("i_id_proyecto_investigacion", MySqlDbType.Int32) { Value = idBecario},
+                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idUserCreacion }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Crear_Becario_Investigacion", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearBecarioInvestigacion", ex.Message, "BecaAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
         /// <returns></returns>
         public List<BecariosSAEServicio>? ObtenerBecariosServicio()
         {
@@ -506,6 +716,73 @@ namespace API_WEB_SAE_6.Adapters
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="becario"></param>
+        /// <param name="idUserMod"></param>
+        /// <returns></returns>
+        public BecariosSAEServicio ModificarBecarioServicio(BecariosSAEServicio becario, int idUserMod)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_beca_servicio", MySqlDbType.Int32) { Value = becario.id },
+                        new("i_id_becario", MySqlDbType.Int32) { Value = becario.becario.id },
+                        new("i_id_servicio", MySqlDbType.Int32) { Value = becario.servicio?.id },
+                        new("i_modulos", MySqlDbType.Int32) { Value = becario.modulos_asignados },
+                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Becario_Servicio", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarBecarioServicio", ex.Message, "BecaAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="idBecario"></param>
+        /// <param name="idUserCreacion"></param>
+        /// <returns></returns>
+        public BecariosSAEServicio CrearBecarioServicio(int idBecario, int idUserCreacion)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_becario", MySqlDbType.Int32) { Value = idBecario},
+                        new("i_id_servicio", MySqlDbType.Int32) { Value = idBecario},
+                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idUserCreacion }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Crear_Becario_Servicio", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearBecarioServicio", ex.Message, "BecaAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
         /// <returns></returns>
         public List<BecariosNacionales>? ObtenerBecariosNacionales()
         {
@@ -595,249 +872,6 @@ namespace API_WEB_SAE_6.Adapters
         /// <summary>
         /// 
         /// </summary>
-        /// <returns></returns>
-        public List<ProyectosInvestigacion>? ObtenerProyectos()
-        {
-            string method = "ObtenerProyectos";
-            try
-            {
-                //Por si algun momento les pinta cambiar de motor nuevamente
-                if (MotorDB == "MySQL")
-                {
-                    GeneralAdapterMySQL consultor = new();
-                    DataTable respuesta = consultor.ExecuteView("MODULO_BECAS_Listar_Proyectos_Investigacion");
-                    //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
-                    if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
-
-                    List<ProyectosInvestigacion> listadoBecario = [];
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        ProyectosInvestigacion becario = new(row);
-                        listadoBecario.Add(becario);
-                    }
-                    return listadoBecario;
-                }
-                else return null;
-            }
-            catch (Exception ex)
-            {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, "BecaAdapter");
-                return null;
-            }
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
-        public List<ServiciosInternosFacultad>? ObtenerServiciosDisponibles()
-        {
-            string method = "ObtenerProyectos";
-            try
-            {
-                //Por si algun momento les pinta cambiar de motor nuevamente
-                if (MotorDB == "MySQL")
-                {
-                    GeneralAdapterMySQL consultor = new();
-                    DataTable respuesta = consultor.ExecuteView("MODULO_BECAS_Listar_Servicios");
-                    //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
-                    if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
-
-                    List<ServiciosInternosFacultad> listadoBecario = [];
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        ServiciosInternosFacultad becario = new(row);
-                        listadoBecario.Add(becario);
-                    }
-                    return listadoBecario;
-                }
-                else return null;
-            }
-            catch (Exception ex)
-            {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, "BecaAdapter");
-                return null;
-            }
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="legajo"></param>
-        /// <returns></returns>
-        public List<SituacionesAcademicas>? BuscarSituacionesAcademicasXLegajo(string legajo)
-        {
-            if (MotorDB == "MySQL")
-            {
-                try
-                {
-                    //Inicializa un valor y le asigna el tipo
-                    List<MySqlParameter> parameters = [new("i_legajo", MySqlDbType.VarChar) { Value = legajo }];
-
-                    GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Buscar_Situaciones_Academicas_Legajo", parameters);
-                    if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
-
-                    List<SituacionesAcademicas> listadoSituaciones = [];
-                    foreach (DataRow row in respuesta.Rows)
-                    {
-                        SituacionesAcademicas becario = new(row);
-                        listadoSituaciones.Add(becario);
-                    }
-                    return listadoSituaciones;
-                }
-                catch (Exception ex)
-                {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarUsuarioXID", ex.Message, "BecaAdapter");
-                    return null;
-                }
-            }
-            else return [];
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="becario"></param>
-        /// <param name="idUserMod"></param>
-        /// <returns></returns>
-        public BecariosSAE ModificarBecario(BecariosSAE becario, int idUserMod)
-        {
-            if (MotorDB == "MySQL")
-            {
-                try
-                {
-                    //Inicializa un valor y le asigna el tipo
-                    List<MySqlParameter> parameters = [
-                        new("i_id_becario", MySqlDbType.Int32) { Value = becario.id },
-                        new("i_legajo", MySqlDbType.VarChar) { Value = becario.legajo },
-                        new("i_alquila", MySqlDbType.Bit) { Value = becario.alquila },
-                        new("i_fecha_solicitud", MySqlDbType.Date) { Value = becario.fecha_solicitud },
-                        new("i_aceptado", MySqlDbType.Bit) { Value = becario.aceptado_inicio },
-                        new("i_puede_pagarle", MySqlDbType.Bit) { Value = becario.puede_pagarle },
-                        new("i_activo", MySqlDbType.Bit) { Value = becario.activo },
-                        new("i_anio_beca", MySqlDbType.Int32) { Value = becario.anio_beca },
-                        new("i_id_becario_previo", MySqlDbType.Int32) { Value = becario.id_becario_previo },
-                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }
-                        ];
-
-                    GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Becario_SAE", parameters);
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
-                    else return new(respuesta.Rows[0]);
-                }
-                catch (Exception ex)
-                {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarBecario", ex.Message, "BecaAdapter");
-                    return new();
-                }
-
-            }
-            else return new();
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="becario"></param>
-        /// <param name="idUserMod"></param>
-        /// <returns></returns>
-        public BecariosSAEEconomica ModificarBecarioEconomica(BecariosSAEEconomica becario, int idUserMod)
-        {
-            if (MotorDB == "MySQL")
-            {
-                try
-                {
-                    //Inicializa un valor y le asigna el tipo
-                    List<MySqlParameter> parameters = [
-                        new("i_id_economica", MySqlDbType.Int32) { Value = becario.id },
-                        new("i_id_becario", MySqlDbType.Int32) { Value = becario.becario.id },
-                        new("i_entrevista", MySqlDbType.Bit) { Value = becario.entrevista_realizada },
-                        new("i_modulos", MySqlDbType.Int32) { Value = becario.modulos_asignados },
-                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }
-                        ];
-
-                    GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Becario_Economica", parameters);
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
-                    else return new(respuesta.Rows[0]);
-                }
-                catch (Exception ex)
-                {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarBecarioEconomica", ex.Message, "BecaAdapter");
-                    return new();
-                }
-            }
-            else return new();
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="becario"></param>
-        /// <param name="idUserMod"></param>
-        /// <returns></returns>
-        public BecariosSAEInvestigacion ModificarBecarioInvestigacion(BecariosSAEInvestigacion becario, int idUserMod)
-        {
-            if (MotorDB == "MySQL")
-            {
-                try
-                {
-                    //Inicializa un valor y le asigna el tipo
-                    List<MySqlParameter> parameters = [
-                        new("i_id_investigacion", MySqlDbType.Int32) { Value = becario.id },
-                        new("i_id_becario", MySqlDbType.Int32) { Value = becario.becario.id },
-                        new("i_id_proyecto", MySqlDbType.Int32) { Value = becario.proyecto_investigacion?.id },
-                        new("i_modulos", MySqlDbType.Int32) { Value = becario.modulos_asignados },
-                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }
-                        ];
-
-                    GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Becario_Investigacion", parameters);
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
-                    else return new(respuesta.Rows[0]);
-                }
-                catch (Exception ex)
-                {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarBecarioInvestigacion", ex.Message, "BecaAdapter");
-                    return new();
-                }
-
-            }
-            else return new();
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="becario"></param>
-        /// <param name="idUserMod"></param>
-        /// <returns></returns>
-        public BecariosSAEServicio ModificarBecarioServicio(BecariosSAEServicio becario, int idUserMod)
-        {
-            if (MotorDB == "MySQL")
-            {
-                try
-                {
-                    //Inicializa un valor y le asigna el tipo
-                    List<MySqlParameter> parameters = [
-                        new("i_id_beca_servicio", MySqlDbType.Int32) { Value = becario.id },
-                        new("i_id_becario", MySqlDbType.Int32) { Value = becario.becario.id },
-                        new("i_id_servicio", MySqlDbType.Int32) { Value = becario.servicio?.id },
-                        new("i_modulos", MySqlDbType.Int32) { Value = becario.modulos_asignados },
-                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }
-                        ];
-
-                    GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Becario_Servicio", parameters);
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
-                    else return new(respuesta.Rows[0]);
-                }
-                catch (Exception ex)
-                {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarBecarioServicio", ex.Message, "BecaAdapter");
-                    return new();
-                }
-            }
-            else return new();
-        }
-        /// <summary>
-        /// 
-        /// </summary>
         /// <param name="becario"></param>
         /// <param name="idUserMod"></param>
         /// <returns></returns>
@@ -870,212 +904,6 @@ namespace API_WEB_SAE_6.Adapters
                     return new();
                 }
 
-            }
-            else return new();
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="proyecto"></param>
-        /// <returns></returns>
-        public ProyectosInvestigacion ModificarProyecto(ProyectosInvestigacion proyecto)
-        {
-            if (MotorDB == "MySQL")
-            {
-                try
-                {
-                    //Inicializa un valor y le asigna el tipo
-                    List<MySqlParameter> parameters = [
-                        new("i_id_proyecto", MySqlDbType.Int32) { Value = proyecto.id },
-                        new("i_nombre", MySqlDbType.VarChar) { Value = proyecto.nombre_proyecto_investigacion },
-                        new("i_centro", MySqlDbType.VarChar) { Value = proyecto.centro_investigacion },
-                        new("i_activo", MySqlDbType.Bit) { Value = proyecto.activo }
-                        ];
-
-                    GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Proyecto_Investigacion", parameters);
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
-                    else return new(respuesta.Rows[0]);
-                }
-                catch (Exception ex)
-                {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarProyecto", ex.Message, "BecaAdapter");
-                    return new();
-                }
-            }
-            else return new();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="situacion"></param>
-        /// <param name="idUserMod"></param>
-        /// <returns></returns>
-        public SituacionesAcademicas ModificarSituacionAcademica(SituacionesAcademicas situacion, int idUserMod)
-        {
-            if (MotorDB == "MySQL")
-            {
-                try
-                {
-                    //Inicializa un valor y le asigna el tipo
-                    List<MySqlParameter> parameters = [
-                        new("i_id_situacion", MySqlDbType.Int32) { Value = situacion.id },
-                        new("i_legajo", MySqlDbType.VarChar) { Value = situacion.legajo },
-                        new("i_cursando", MySqlDbType.Bit) { Value = situacion.cursando },
-                        new("i_anio_situacion", MySqlDbType.Int32) { Value = situacion.anio_situacion },
-                        new("i_cant_cur_anterior", MySqlDbType.Int32) { Value = situacion.cant_materias_cursadas_anterior },
-                        new("i_cant_aprob_anterior", MySqlDbType.Int32) { Value = situacion.cant_materias_aprobadas_periodo_anterior },
-                        new("i_cant_cur", MySqlDbType.Int32) { Value = situacion.cant_materias_cursando },
-                        new("i_cant_aprob", MySqlDbType.Int32) { Value = situacion.cant_materias_aprobadas_total },
-                        new("i_prom_con_apla", MySqlDbType.Decimal) { Value = situacion.prom_gral_con_aplazos},
-                        new("i_anio_ingre", MySqlDbType.Int32) { Value = situacion.anio_situacion },
-                        new("i_prom_sin_apla", MySqlDbType.Decimal) { Value = situacion.prom_gral_sin_aplazos },
-                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }
-                        ];
-
-                    GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Situacion_Academica", parameters);
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
-                    else return new(respuesta.Rows[0]);
-                }
-                catch (Exception ex)
-                {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarSituacionAcademica", ex.Message, "BecaAdapter");
-                    return new();
-                }
-            }
-            else return new();
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="becario"></param>
-        /// <param name="idUserCreacion"></param>
-        /// <returns></returns>
-        public BecariosSAE CrearBecario(BecariosSAE becario, int idUserCreacion)
-        {
-            if (MotorDB == "MySQL")
-            {
-                try
-                {
-                    //Inicializa un valor y le asigna el tipo
-                    List<MySqlParameter> parameters = [
-                        new("i_legajo", MySqlDbType.VarChar) { Value = becario.legajo },
-                        new("i_alquila", MySqlDbType.Bit) { Value = becario.alquila },
-                        new("i_fecha_solicitud", MySqlDbType.Date) { Value = becario.fecha_solicitud },
-                        new("i_anio_beca", MySqlDbType.Int32) { Value = becario.anio_beca },
-                        new("i_id_becario_previo", MySqlDbType.Int32) { Value = becario.id_becario_previo },
-                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idUserCreacion }
-                        ];
-
-                    GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Crear_Becario_SAE", parameters);
-
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
-                    else return new(respuesta.Rows[0]);
-                }
-                catch (Exception ex)
-                {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearBecario", ex.Message, "BecaAdapter");
-                    return new();
-                }
-            }
-            else return new();
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="idBecario"></param>
-        /// <param name="idUserCreacion"></param>
-        /// <returns></returns>
-        public BecariosSAEEconomica CrearBecarioEconomica(int idBecario, int idUserCreacion)
-        {
-            if (MotorDB == "MySQL")
-            {
-                try
-                {
-                    //Inicializa un valor y le asigna el tipo
-                    List<MySqlParameter> parameters = [
-                        new("i_id_becario", MySqlDbType.Int32) { Value = idBecario},
-                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idUserCreacion }
-                        ];
-
-                    GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Crear_Becario_Economica", parameters);
-
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
-                    else return new(respuesta.Rows[0]);
-                }
-                catch (Exception ex)
-                {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearBecario", ex.Message, "BecaAdapter");
-                    return new();
-                }
-            }
-            else return new();
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="idBecario"></param>
-        /// <param name="idUserCreacion"></param>
-        /// <returns></returns>
-        public BecariosSAEInvestigacion CrearBecarioInvestigacion(int idBecario, int idUserCreacion)
-        {
-            if (MotorDB == "MySQL")
-            {
-                try
-                {
-                    //Inicializa un valor y le asigna el tipo
-                    List<MySqlParameter> parameters = [
-                        new("i_id_becario", MySqlDbType.Int32) { Value = idBecario},
-                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idUserCreacion }
-                        ];
-
-                    GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Crear_Becario_Investigacion", parameters);
-
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
-                    else return new(respuesta.Rows[0]);
-                }
-                catch (Exception ex)
-                {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearBecarioInvestigacion", ex.Message, "BecaAdapter");
-                    return new();
-                }
-            }
-            else return new();
-        }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="idBecario"></param>
-        /// <param name="idUserCreacion"></param>
-        /// <returns></returns>
-        public BecariosSAEServicio CrearBecarioServicio(int idBecario, int idUserCreacion)
-        {
-            if (MotorDB == "MySQL")
-            {
-                try
-                {
-                    //Inicializa un valor y le asigna el tipo
-                    List<MySqlParameter> parameters = [
-                        new("i_id_becario", MySqlDbType.Int32) { Value = idBecario},
-                        new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idUserCreacion }
-                        ];
-
-                    GeneralAdapterMySQL consult = new();
-                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Crear_Becario_Servicio", parameters);
-
-                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
-                    else return new(respuesta.Rows[0]);
-                }
-                catch (Exception ex)
-                {
-                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearBecarioServicio", ex.Message, "BecaAdapter");
-                    return new();
-                }
             }
             else return new();
         }
@@ -1119,6 +947,72 @@ namespace API_WEB_SAE_6.Adapters
         /// <summary>
         /// 
         /// </summary>
+        /// <returns></returns>
+        public List<ProyectosInvestigacion>? ObtenerProyectos()
+        {
+            string method = "ObtenerProyectos";
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    GeneralAdapterMySQL consultor = new();
+                    DataTable respuesta = consultor.ExecuteView("MODULO_BECAS_Listar_Proyectos_Investigacion");
+                    //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
+                    if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
+
+                    List<ProyectosInvestigacion> listadoBecario = [];
+                    foreach (DataRow row in respuesta.Rows)
+                    {
+                        ProyectosInvestigacion becario = new(row);
+                        listadoBecario.Add(becario);
+                    }
+                    return listadoBecario;
+                }
+                else return null;
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, "BecaAdapter");
+                return null;
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="proyecto"></param>
+        /// <returns></returns>
+        public ProyectosInvestigacion ModificarProyecto(ProyectosInvestigacion proyecto)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_proyecto", MySqlDbType.Int32) { Value = proyecto.id },
+                        new("i_nombre", MySqlDbType.VarChar) { Value = proyecto.nombre_proyecto_investigacion },
+                        new("i_centro", MySqlDbType.VarChar) { Value = proyecto.centro_investigacion },
+                        new("i_activo", MySqlDbType.Bit) { Value = proyecto.activo }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Proyecto_Investigacion", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarProyecto", ex.Message, "BecaAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="proyecto"></param>
         /// <returns></returns>
         public ProyectosInvestigacion CrearProyecto(ProyectosInvestigacion proyecto)
@@ -1143,6 +1037,185 @@ namespace API_WEB_SAE_6.Adapters
                 catch (Exception ex)
                 {
                     Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearProyectoInv", ex.Message, "BecaAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public List<ServiciosInternosFacultad>? ObtenerServiciosDisponibles()
+        {
+            string method = "ObtenerProyectos";
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    GeneralAdapterMySQL consultor = new();
+                    DataTable respuesta = consultor.ExecuteView("MODULO_BECAS_Listar_Servicios");
+                    //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
+                    if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
+
+                    List<ServiciosInternosFacultad> listadoBecario = [];
+                    foreach (DataRow row in respuesta.Rows)
+                    {
+                        ServiciosInternosFacultad becario = new(row);
+                        listadoBecario.Add(becario);
+                    }
+                    return listadoBecario;
+                }
+                else return null;
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, "BecaAdapter");
+                return null;
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="servicio"></param>
+        /// <returns></returns>
+        public ServiciosInternosFacultad ModificarServicio(ServiciosInternosFacultad servicio)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_servicio", MySqlDbType.Int32) { Value = servicio.id },
+                        new("i_nombre", MySqlDbType.VarChar) { Value = servicio.nombre },
+                        new("i_telefono", MySqlDbType.VarChar) { Value = servicio.nro_telefono },
+                        new("i_interno_telefono", MySqlDbType.VarChar) { Value = servicio.nro_interno_telefono },
+                        new("i_horario_atencion", MySqlDbType.Time) { Value = servicio.horario_atencion },
+                        new("i_horario_atencion_final", MySqlDbType.Time) { Value = servicio.horario_atencion_final },
+                        new("i_email_institucion", MySqlDbType.VarChar) { Value = servicio.email_institucional }
+                       ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Servicio", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarServicio", ex.Message, "BecaAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="servicio"></param>
+        /// <returns></returns>
+        public ServiciosInternosFacultad CrearServicioInterno(ServiciosInternosFacultad servicio)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_nombre", MySqlDbType.VarChar) { Value = servicio.nombre },
+                        new("i_telefono", MySqlDbType.VarChar) { Value = servicio.nro_telefono },
+                        new("i_interno_telefono", MySqlDbType.VarChar) { Value = servicio.nro_interno_telefono },
+                        new("i_horario_atencion", MySqlDbType.Time) { Value = servicio.horario_atencion },
+                        new("i_horario_atencion_final", MySqlDbType.Time) { Value = servicio.horario_atencion_final },
+                        new("i_email_institucion", MySqlDbType.VarChar) { Value = servicio.email_institucional }
+                       ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Crear_Serivicio_Interno", parameters);
+
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "CrearServicioInterno", ex.Message, "BecaAdapter");
+                    return new();
+                }
+            }
+            else return new();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="legajo"></param>
+        /// <returns></returns>
+        public List<SituacionesAcademicas>? BuscarSituacionesAcademicasXLegajo(string legajo)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [new("i_legajo", MySqlDbType.VarChar) { Value = legajo }];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Buscar_Situaciones_Academicas_Legajo", parameters);
+                    if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
+
+                    List<SituacionesAcademicas> listadoSituaciones = [];
+                    foreach (DataRow row in respuesta.Rows)
+                    {
+                        SituacionesAcademicas becario = new(row);
+                        listadoSituaciones.Add(becario);
+                    }
+                    return listadoSituaciones;
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarUsuarioXID", ex.Message, "BecaAdapter");
+                    return null;
+                }
+            }
+            else return [];
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="situacion"></param>
+        /// <param name="idUserMod"></param>
+        /// <returns></returns>
+        public SituacionesAcademicas ModificarSituacionAcademica(SituacionesAcademicas situacion, int idUserMod)
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [
+                        new("i_id_situacion", MySqlDbType.Int32) { Value = situacion.id },
+                        new("i_legajo", MySqlDbType.VarChar) { Value = situacion.legajo },
+                        new("i_cursando", MySqlDbType.Bit) { Value = situacion.cursando },
+                        new("i_anio_situacion", MySqlDbType.Int32) { Value = situacion.anio_situacion },
+                        new("i_cant_cur_anterior", MySqlDbType.Int32) { Value = situacion.cant_materias_cursadas_anterior },
+                        new("i_cant_aprob_anterior", MySqlDbType.Int32) { Value = situacion.cant_materias_aprobadas_periodo_anterior },
+                        new("i_cant_cur", MySqlDbType.Int32) { Value = situacion.cant_materias_cursando },
+                        new("i_cant_aprob", MySqlDbType.Int32) { Value = situacion.cant_materias_aprobadas_total },
+                        new("i_prom_con_apla", MySqlDbType.Decimal) { Value = situacion.prom_gral_con_aplazos},
+                        new("i_anio_ingre", MySqlDbType.Int32) { Value = situacion.anio_situacion },
+                        new("i_prom_sin_apla", MySqlDbType.Decimal) { Value = situacion.prom_gral_sin_aplazos },
+                        new("i_id_usuario_mod", MySqlDbType.Int32) { Value = idUserMod }
+                        ];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_BECAS_Modificar_Situacion_Academica", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ModificarSituacionAcademica", ex.Message, "BecaAdapter");
                     return new();
                 }
             }
