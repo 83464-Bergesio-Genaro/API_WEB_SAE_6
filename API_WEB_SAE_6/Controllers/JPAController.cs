@@ -891,7 +891,7 @@ namespace API_WEB_SAE_6.Controllers
             {
                 if (TienePermiso(112))
                 {
-                    if (JpaAdapter.EliminarStand(id)) return Ok("Interesado Eliminado");
+                    if (JpaAdapter.EliminarInteresado(id)) return Ok("Interesado Eliminado");
                     else return Conflict();
                 }
                 else return Forbid();
