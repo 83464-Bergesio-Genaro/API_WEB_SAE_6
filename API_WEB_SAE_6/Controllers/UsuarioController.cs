@@ -6,16 +6,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.VisualBasic;
 using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
-using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Xml;
-
 
 namespace API_WEB_SAE_6.Controllers
 {
@@ -263,6 +259,56 @@ namespace API_WEB_SAE_6.Controllers
                     //Probamos insertandolo en nuestra BD
                     else return NoContent();
                 }
+            }
+            else return Unauthorized();
+        }
+        /// <summary>
+        /// Le da extension a nuestro Token
+        /// </summary>
+        /// <returns>Un nuevo Token con la sesion extendida</returns>
+        /// <remarks>
+        /// Este endpoint se utiliza para extender la sesion de un usuario que ya tiene un JWT valido, lo que hace es generar un nuevo JWT con una nueva fecha de expiracion y el mismo contenido. Es necesario que el usuario tenga un JWT valido para poder acceder a este endpoint, ya que se utiliza la informacion del JWT para generar el nuevo token. De esta manera, si el usuario esta utilizando la aplicacion y su token esta por expirar, puede llamar a este endpoint para obtener un nuevo token sin necesidad de volver a ingresar sus credenciales en A4.
+        ///
+        /// NOTA: Una vez generado el JWT tiene vigencia por 30 minutos y debe ser creado nuevamente
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Usuarios/ObtenerTokenJWT/{legajo}/{dominio}/{password}
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///         "token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiI4MzQ2NCw1LDAiLCJuYmYiOjE3MTY5MDMzODU",
+        ///          "legajo_armado": "string",
+        ///          "nombre_usuario": "string",
+        ///          id_perfil: 0,
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="201" >Devuelve un JWT que permite usar la aplicacion </response>
+        /// <response code="401" >El usuario no introdujo crendeciales validas en A4 </response>
+        /// <response code="409" >Ocurre un error en la extension y el usuario no existe </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet]
+        [Authorize]
+        [ProducesResponseType(typeof(JWToken), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        //[ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<JWToken> ExtenderSesion()
+        {
+            string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+            //Comprueba que tengamos un usuario autorizado a los cambios y que lo podamos registrar
+            if (userData != null &&
+                userData.Length > 0 &&
+                userData != "NO DATA" &&
+                int.TryParse(userData.Split(',')[2], out int userID))
+            {
+                Usuarios? us = UserAdapter.BuscarUsuarioXID(userID);
+                if(us != null && us.legajo != "" && us.id_perfil != -1 && us.id != -1)
+                    return CrearToken(us.legajo, us);
+                else return Conflict();
             }
             else return Unauthorized();
         }

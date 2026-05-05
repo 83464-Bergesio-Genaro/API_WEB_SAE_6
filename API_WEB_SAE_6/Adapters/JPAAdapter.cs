@@ -151,7 +151,7 @@ namespace API_WEB_SAE_6.Adapters
                     new("i_hora_ini", MySqlDbType.VarChar) { Value = evento.horario_inicio },
                     new("i_hora_fin", MySqlDbType.VarChar) { Value = evento.horario_fin  },
                     new("i_encargado", MySqlDbType.VarChar) { Value = evento.encargado },
-                    new("i_nombre_evento", MySqlDbType.VarChar) { Value = evento.encargado },
+                    new("i_nombre_evento", MySqlDbType.VarChar) { Value = evento.nombre_evento },
                     new("i_informacion_interna", MySqlDbType.Bit) { Value = evento.informacion_interna },
                     new("i_ubicacion", MySqlDbType.Text) { Value = evento.ubicacion }
                 ];
@@ -222,7 +222,7 @@ namespace API_WEB_SAE_6.Adapters
                 {
                     //Inicializa un valor y le asigna el tipo
                     List<MySqlParameter> parameters = [
-                            new("i_id_stand", MySqlDbType.Int32) { Value = stand.id },
+                    new("i_id_stand", MySqlDbType.Int32) { Value = stand.id },
                     new("i_nombre_stand", MySqlDbType.VarChar) { Value = stand.nombre_stand },
                     new("i_hora_ini", MySqlDbType.VarChar) { Value = stand.horario_inicio },
                     new("i_hora_fin", MySqlDbType.VarChar) { Value = stand.horario_fin  },
