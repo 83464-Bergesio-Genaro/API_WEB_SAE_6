@@ -4,6 +4,7 @@ using API_WEB_SAE_6.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace API_WEB_SAE_6.Controllers
 {
@@ -20,6 +21,10 @@ namespace API_WEB_SAE_6.Controllers
         /// Es el adaptador con respecto a la base de datos para realizar llamadas
         /// </summary>
         private HerramientasAdapter ToolsAdapter = new();
+        /// <summary>
+        /// Es el adaptador con respecto a la base de datos para realizar llamadas
+        /// </summary>
+        private UsuarioAdapter UserAdapter = new();
         /// <summary>
         /// 
         /// </summary>
@@ -52,8 +57,6 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="200" >Devuelve un listado de todos los tipos de documento </response>
         /// <response code="204" >No hay ningun tipo de documento cargado</response>
         /// <response code="400" >Ocurre un error en la consulta </response>
-        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
-        /// <response code="403" >Su perfil no cuenta con este permiso</response>
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpGet]
@@ -107,8 +110,6 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="200" >Devuelve un listado de todas las carreras </response>
         /// <response code="204" >No se encontro ninguna carrera cargada </response>
         /// <response code="400" >Ocurre un error en la consulta </response>
-        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
-        /// <response code="403" >Su perfil no cuenta con este permiso</response>
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpGet]
@@ -137,6 +138,75 @@ namespace API_WEB_SAE_6.Controllers
                 Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
                 return BadRequest();
             }
+        }
+        /// <summary>
+        /// Listado completo de perfiles disponibles en la aplicacion
+        /// </summary>
+        /// <returns>Un listado con los perfiles</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Herramientas/ObtenerPerfiles/
+        ///     
+        ///     RESPONSE:
+        ///     [
+        ///         {
+        ///           "id": 0,
+        ///           "nombre": "Administrador",
+        ///           "activo": true
+        ///         }
+        ///     ]
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve un listado de todos los perfiles </response>
+        /// <response code="204" >No hay ningun perfil cargado</response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet]
+        [Authorize]
+        [ActionName("ObtenerPerfiles")]
+        [ProducesResponseType(typeof(IEnumerable<Perfiles>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<IEnumerable<Perfiles>> ObtenerPerfiles()
+        {
+            try
+            {
+                if (TienePermiso(9))
+                {
+                    //Si es null es que ocurrio un conflicto en BD.
+                    List<Perfiles>? tiposDocumento = ToolsAdapter.ObtenerPerfiles();
+
+                    if (tiposDocumento == null) return Conflict();
+                    if (tiposDocumento.Count == 0) return NoContent();
+
+                    return Ok(tiposDocumento);
+                }
+                else return Forbid();
+
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
+        /// Permite validar si el perfil tiene permiso en la BD para ejecutar este endpoint
+        /// </summary>
+        /// <param name="id_funcion">Es la funcion que queremos validar </param>
+        /// <returns> True = Tiene permisos || False = No tiene permisos </returns>
+        private bool TienePermiso(int id_funcion)
+        {
+            string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+            if (userData == null || userData == "NO DATA") return false;
+            if (int.TryParse(userData.Split(',')[1], out int id_perfil)) return UserAdapter.TienePermiso(id_funcion, id_perfil);
+            else return false;
         }
     }
 }

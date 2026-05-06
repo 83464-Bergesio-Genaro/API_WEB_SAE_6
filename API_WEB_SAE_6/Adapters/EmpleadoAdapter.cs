@@ -178,9 +178,11 @@ namespace API_WEB_SAE_6.Adapters
         /// Metodo que se encarga de crear un nuevo empleado en la base de datos, este metodo se utiliza para crear un nuevo empleado en la API, no se utiliza para mostrar la informacion, ya que para eso se utiliza la clase EmpleadoAdapter, esta clase es solo para mostrar la informacion de los empleados en la API.
         /// </summary>
         /// <param name="emplead"></param>
+        /// <param name="apellidos"></param>
+        /// <param name="nombres"></param>
         /// <param name="idCreacion"></param>
         /// <returns></returns>
-        public EmpleadosSAE CrearEmpleado(EmpleadosSAE emplead, int idCreacion)
+        public Usuarios CrearEmpleado(Usuarios emplead,string nombres,string apellidos, int idCreacion)
         {
             if (MotorDB == "MySQL")
             {
@@ -189,6 +191,9 @@ namespace API_WEB_SAE_6.Adapters
                     //Inicializa un valor y le asigna el tipo
                     List<MySqlParameter> parameters = [
                         new("i_legajo", MySqlDbType.VarChar) { Value = emplead.legajo},
+                        new("i_nombres", MySqlDbType.VarChar) { Value = nombres},
+                        new("i_apellidos", MySqlDbType.VarChar) { Value = apellidos},
+                        new("i_id_perfil", MySqlDbType.Int32) { Value = emplead.id_perfil},
                         new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idCreacion}
                         ];
 

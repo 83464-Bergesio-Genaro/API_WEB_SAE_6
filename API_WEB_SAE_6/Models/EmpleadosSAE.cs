@@ -22,6 +22,14 @@ namespace API_WEB_SAE_6.Models
         /// </summary>
         public string? nombre_empleado { get; set; }
         /// <summary>
+        /// 
+        /// </summary>
+        public int id_perfil { get; set; }
+        /// <summary>
+        /// Nombre del perfil que estamos recuperando
+        /// </summary>
+        public string? nombre_perfil { get; set; }
+        /// <summary>
         /// Activo del empleado, es un booleano que indica si el empleado esta activo o no, se utiliza para mostrar solo los empleados activos en la API, no se puede modificar, se utiliza para relacionar con otras tablas, como por ejemplo la tabla de turnos, para saber que empleado tiene un turno asignado. Si el empleado esta inactivo, no se muestra en la API y no se le pueden asignar turnos.
         /// </summary>
         public bool activo { get; set; } = false;
@@ -38,6 +46,8 @@ namespace API_WEB_SAE_6.Models
             id = int.Parse(data["id"].ToString() ?? "0");
             legajo = data["legajo"].ToString() ?? "ERROR";
             nombre_empleado = data["nombre_empleado"].ToString() ?? "ERROR";
+            id_perfil = int.Parse(data["id_perfil"].ToString() ?? "0");
+            nombre_perfil = data["nombre"].ToString() ?? "ERROR";
             activo = (data["activo"].ToString() == "1");
         }
     }

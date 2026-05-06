@@ -49,12 +49,14 @@ namespace API_WEB_SAE_6.Controllers
         ///     
         ///     RESPONSE:
         ///     [
-        ///       {
-        ///          "id": 0,
-        ///          "legajo": "string",
-        ///          "nombre_empleado": "string",
-        ///          "activo": true
-        ///       }
+        ///         {
+        ///           "id": 0,
+        ///           "legajo": "gbergesio@frc.utn.edu.ar",
+        ///           "nombre_empleado": ", Genaro Rafael Bergesio",
+        ///           "id_perfil": 5,
+        ///           "nombre_perfil": "Administrador",
+        ///           "activo": true
+        ///         }
         ///     ]
         ///     
         /// </remarks>
@@ -108,12 +110,14 @@ namespace API_WEB_SAE_6.Controllers
         ///     GET /api/Empleados/ObtenerEmpleadosActivos/
         ///     
         ///     [
-        ///       {
-        ///          "id": 0,
-        ///          "legajo": "string",
-        ///          "nombre_empleado": "string",
-        ///          "activo": true
-        ///       }
+        ///         {
+        ///           "id": 0,
+        ///           "legajo": "gbergesio@frc.utn.edu.ar",
+        ///           "nombre_empleado": ", Genaro Rafael Bergesio",
+        ///           "id_perfil": 5,
+        ///           "nombre_perfil": "Administrador",
+        ///           "activo": true
+        ///         }
         ///     ]
         ///     
         /// </remarks>
@@ -169,10 +173,12 @@ namespace API_WEB_SAE_6.Controllers
         ///     
         ///     RESPONSE:
         ///     {
-        ///        "id": 0,
-        ///        "legajo": "string",
-        ///        "nombre_empleado": "string",
-        ///        "activo": true
+        ///       "id": 0,
+        ///       "legajo": "gbergesio@frc.utn.edu.ar",
+        ///       "nombre_empleado": ", Genaro Rafael Bergesio",
+        ///       "id_perfil": 5,
+        ///       "nombre_perfil": "Administrador",
+        ///       "activo": true
         ///     }
         ///     
         /// </remarks>
@@ -225,10 +231,12 @@ namespace API_WEB_SAE_6.Controllers
         ///     
         ///     RESPONSE:
         ///     {
-        ///        "id": 0,
-        ///        "legajo": "string",
-        ///        "nombre_empleado": "string",
-        ///        "activo": true
+        ///       "id": 0,
+        ///       "legajo": "gbergesio@frc.utn.edu.ar",
+        ///       "nombre_empleado": ", Genaro Rafael Bergesio",
+        ///       "id_perfil": 5,
+        ///       "nombre_perfil": "Administrador",
+        ///       "activo": true
         ///     }
         ///     
         /// </remarks>
@@ -267,81 +275,83 @@ namespace API_WEB_SAE_6.Controllers
                 return BadRequest();
             }
         }
-
-        /// <summary>
-        /// Permite la modificacion de un empleado
-        /// </summary>
-        /// <param name="id"> El ID del empleado a modificar</param>
-        /// <param name="empleado"> Los datos modificados del empleado</param>
-        /// <returns>Un empleado modificado en BD</returns>
-        /// <remarks>
-        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
-        ///  
-        /// Ejemplo de uso:
-        /// 
-        ///     PUT /api/Empleados/ModificarEmpleado/{id}
-        ///     BODY:
-        ///     {
-        ///         "id": 0,
-        ///         "legajo": "string",
-        ///         "activo": true,
-        ///     }
-        ///     
-        ///     RESPONSE:
-        ///     {
-        ///        "id": 0,
-        ///        "legajo": "string",
-        ///        "nombre_empleado": "string",
-        ///        "activo": true
-        ///     }
-        ///     
-        /// </remarks>
-        /// <response code="200" >Devuelve el empleado modificado en BD </response>
-        /// <response code="400" >Ocurre un error en la consulta o el ID es diferente que el del usuario a modificar </response>
-        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
-        /// <response code="403" >Su perfil no cuenta con este permiso</response>
-        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y no se modifica el usuario </response>
-        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpPut("{id}")]
-        [ActionName("ModificarEmpleado")]
-        [ProducesResponseType(typeof(EmpleadosSAE), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<EmpleadosSAE> ModificarEmpleado(int id, [FromBody, Required] EmpleadosSAE empleado)
-        {
-            try
-            {
-                if (id != empleado.id) return BadRequest();
-                //El numero de funcion es: 12
-                if ( TienePermiso(44))
-                {
-                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-                    if (userData != null &&
-                       userData.Length > 0 &&
-                       userData != "NO DATA" &&
-                       int.TryParse(userData.Split(',')[2], out int idUserMod))
-                    {
-                        empleado = EmployAdapter.ModificarEmpleado(empleado, idUserMod);
-                        if (empleado.id != -1) return Ok(empleado);
-                        else return Conflict();
-                    }
-                    else return Unauthorized();
-                }
-                else return Forbid();
-            }
-            catch (Exception ex)
-            {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
-                return BadRequest();
-            }
-        }
+        //Teoricamente no se debe modificar mas el empleado sino que es lo mismo que modificar un usuario
+        ///// <summary>
+        ///// Permite la modificacion de un empleado
+        ///// </summary>
+        ///// <param name="id"> El ID del empleado a modificar</param>
+        ///// <param name="empleado"> Los datos modificados del empleado</param>
+        ///// <returns>Un empleado modificado en BD</returns>
+        ///// <remarks>
+        ///// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        /////  
+        ///// Ejemplo de uso:
+        ///// 
+        /////     PUT /api/Empleados/ModificarEmpleado/{id}
+        /////     BODY:
+        /////     {
+        /////         "id": 0,
+        /////         "legajo": "string",
+        /////         "activo": true,
+        /////     }
+        /////     
+        /////     RESPONSE:
+        /////     {
+        /////        "id": 0,
+        /////        "legajo": "string",
+        /////        "nombre_empleado": "string",
+        /////        "activo": true
+        /////     }
+        /////     
+        ///// </remarks>
+        ///// <response code="200" >Devuelve el empleado modificado en BD </response>
+        ///// <response code="400" >Ocurre un error en la consulta o el ID es diferente que el del usuario a modificar </response>
+        ///// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        ///// <response code="403" >Su perfil no cuenta con este permiso</response>
+        ///// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y no se modifica el usuario </response>
+        ///// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        //[HttpPut("{id}")]
+        //[ActionName("ModificarEmpleado")]
+        //[ProducesResponseType(typeof(EmpleadosSAE), StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        //[ProducesResponseType(StatusCodes.Status403Forbidden)]
+        //[ProducesResponseType(StatusCodes.Status409Conflict)]
+        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        //public ActionResult<EmpleadosSAE> ModificarEmpleado(int id, [FromBody, Required] EmpleadosSAE empleado)
+        //{
+        //    try
+        //    {
+        //        if (id != empleado.id) return BadRequest();
+        //        //El numero de funcion es: 12
+        //        if ( TienePermiso(44))
+        //        {
+        //            string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+        //            if (userData != null &&
+        //               userData.Length > 0 &&
+        //               userData != "NO DATA" &&
+        //               int.TryParse(userData.Split(',')[2], out int idUserMod))
+        //            {
+        //                empleado = EmployAdapter.ModificarEmpleado(empleado, idUserMod);
+        //                if (empleado.id != -1) return Ok(empleado);
+        //                else return Conflict();
+        //            }
+        //            else return Unauthorized();
+        //        }
+        //        else return Forbid();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+        //        return BadRequest();
+        //    }
+        //}
         /// <summary>
         /// Permite crear empleados
         /// </summary>
-        /// <param name="empleado">El empleado que deseamos crear, se envia en el Body</param>
+        /// <param name="nuevoUsuario"></param>
+        /// <param name="nombres"></param>
+        /// <param name="apellidos"></param>
         /// <returns>Un empleado creado en la base de datos o error</returns>
         /// <remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
@@ -373,13 +383,16 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpPost]
         [ActionName("CrearEmpleado")]
-        [ProducesResponseType(typeof(EmpleadosSAE), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(Usuarios), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<EmpleadosSAE> CrearEmpleado([FromBody] EmpleadosSAE empleado)
+        public ActionResult<Usuarios> CrearEmpleado(
+            [FromBody]Usuarios nuevoUsuario,
+            [FromQuery] string nombres,
+            [FromQuery] string apellidos)
         {
             try
             {
@@ -391,7 +404,7 @@ namespace API_WEB_SAE_6.Controllers
                        userData != "NO DATA" &&
                        int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        empleado = EmployAdapter.CrearEmpleado(empleado, idUserCrea);
+                        Usuarios empleado = EmployAdapter.CrearEmpleado(nuevoUsuario,nombres,apellidos, idUserCrea);
                         if (empleado.id != -1) return Created("Empleado Creado", empleado);
                         else return Conflict();
                     }

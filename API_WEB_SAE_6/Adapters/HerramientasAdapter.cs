@@ -79,5 +79,37 @@ namespace API_WEB_SAE_6.Adapters
             }
             else return null;
         }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public List<Perfiles>? ObtenerPerfiles()
+        {
+            if (MotorDB == "MySQL")
+            {
+                try
+                {
+                    GeneralAdapterMySQL consultor = new();
+                    DataTable respuesta = consultor.ExecuteView("MODULO_HERRAMIENTAS_Listar_Perfiles");
+                    //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
+                    if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
+
+                    List<Perfiles> listadoDocs = [];
+                    foreach (DataRow row in respuesta.Rows)
+                    {
+                        Perfiles docs = new(row);
+                        listadoDocs.Add(docs);
+                    }
+                    return listadoDocs;
+                }
+                catch (Exception ex)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, "ObtenerTiposDocumento", ex.Message, "HerramientasAdapter");
+                    return null;
+                }
+
+            }
+            else return null;
+        }
     }
 }
