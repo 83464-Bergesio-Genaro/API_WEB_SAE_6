@@ -44,13 +44,9 @@ namespace API_WEB_SAE_6.Models
         /// </summary>
         public string asunto { get; set; } = "";
         /// <summary>
-        /// Propiedad que representa el ID del estado del turno médico. Es un entero que identifica el estado actual del turno en la base de datos. Esta propiedad es obligatoria, ya que cada turno debe tener un estado para ser registrado en la base de datos y para poder realizar un seguimiento adecuado del proceso de atención médica.
+        /// El estado en el cual esta el turno actualmente
         /// </summary>
-        public int id_estado_turno { get; set; } = -1;
-        /// <summary>
-        /// Propiedad que representa la descripción del estado del turno médico. Es una cadena de texto que almacena la descripción del estado actual del turno. Esta propiedad es opcional, ya que no todos los turnos pueden tener una descripción de estado registrada en el momento de la consulta o registro del turno en la base de datos.
-        /// </summary>
-        public string? estado { get; set; }
+        public EstadosTurno? estadosTurno { get; set; }
         /// <summary>
         /// Constructor por defecto de la clase TurnosMedicos. Este constructor no realiza ninguna inicialización específica y se utiliza principalmente para crear instancias de la clase sin proporcionar datos iniciales. Las propiedades de la clase se inicializan con valores predeterminados, como -1 para enteros, cadenas vacías para textos y DateTime.MinValue para fechas.
         /// </summary>
@@ -71,8 +67,8 @@ namespace API_WEB_SAE_6.Models
             else fecha_atencion = DateTime.Parse(data["fecha_atencion"].ToString() ?? "2000-01-01");
             hora_atencion = data["hora_atencion"].ToString() ?? "00:00:00";
             asunto = data["asunto"].ToString() ?? "NO DATA";
-            id_estado_turno = int.Parse(data["id_estado_turno"].ToString() ?? "0");
-            estado = data["estado"].ToString() ?? "NO DATA";
+
+            estadosTurno = new(int.Parse(data["id_estado_turno"].ToString() ?? "0"), data["estado"].ToString() ?? "NO DATA");
         }
     }
 }

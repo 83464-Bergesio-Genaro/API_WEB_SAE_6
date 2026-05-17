@@ -34,10 +34,6 @@ namespace API_WEB_SAE_6.Models
         /// Nombre del empleado asignado al horario de atención. Este campo almacena una cadena que representa el nombre del empleado responsable de atender durante el horario especificado. Es útil para mostrar información más legible y comprensible sobre los horarios de atención, facilitando la identificación de los empleados asignados a cada turno.
         /// </summary>
         public string? nombre_empleado_atencion { get; set; } = "";
-        /// <summary>
-        /// Indica si el horario de atención está activo o no. Este campo almacena un valor booleano que representa el estado de actividad del horario de atención. Un valor de "true" indica que el horario está activo y se utiliza para gestionar los turnos de trabajo, mientras que un valor de "false" indica que el horario está inactivo y no se considera para la planificación de turnos en la aplicación.
-        /// </summary>
-        public bool activo { get; set; } = false;
 
         /// <summary>
         /// Constructor por defecto de la clase HorariosSAE. Este constructor inicializa una nueva instancia de la clase sin asignar valores específicos a las propiedades. Es útil para crear objetos de tipo HorariosSAE sin necesidad de proporcionar datos iniciales, permitiendo que las propiedades se establezcan posteriormente a través de métodos o asignaciones directas.
@@ -55,7 +51,6 @@ namespace API_WEB_SAE_6.Models
             dia = int.Parse(data["dia"].ToString() ?? "0");
             id_empleado = int.Parse(data["id_empleado"].ToString() ?? "0");
             nombre_empleado_atencion = data["nombre_empleado_atencion"].ToString() ?? "NO DATA";
-            activo = data["activo"].ToString() == "1";
         }
 
     }

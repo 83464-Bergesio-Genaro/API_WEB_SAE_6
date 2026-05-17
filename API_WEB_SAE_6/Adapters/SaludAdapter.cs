@@ -19,6 +19,39 @@ namespace API_WEB_SAE_6.Adapters
         /// 
         /// </summary>
         /// <returns></returns>
+        public List<EstadosTurno>? ObtenerEstadoTurno()
+        {
+            string method = "ObtenerEstadoTurno";
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    GeneralAdapterMySQL consultor = new();
+                    DataTable respuesta = consultor.ExecuteView("MODULO_SALUD_Listar_Estados_Turno");
+                    //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
+                    if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
+
+                    List<EstadosTurno> estado = [];
+                    foreach (DataRow row in respuesta.Rows)
+                    {
+                        EstadosTurno espe = new(row);
+                        estado.Add(espe);
+                    }
+                    return estado;
+                }
+                else return null;
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, "SaludAdapter");
+                return null;
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         public List<Especialidad>? ObtenerEspecialidadesCompleto()
         {
             string method = "ObtenerEspecialidadCompleto";
@@ -834,7 +867,7 @@ namespace API_WEB_SAE_6.Adapters
                         new("i_id_turno", MySqlDbType.Int32) { Value = cursoMedico.id },
                         new("i_cuil_medico", MySqlDbType.VarChar) { Value = cursoMedico.cuil_medico},
                         new("i_legajo", MySqlDbType.VarChar) { Value = cursoMedico.legajo},
-                        new("i_id_estado_turno", MySqlDbType.Int32) { Value = cursoMedico.id_estado_turno },
+                        new("i_id_estado_turno", MySqlDbType.Int32) { Value = cursoMedico.estadosTurno?.id??0 },//Lo pasa a pendiente si no tiene ningun estado asignado
                         new("i_fecha_solicitud", MySqlDbType.Date) { Value =cursoMedico.fecha_solicitud},
                         new("i_fecha_atencion", MySqlDbType.Date) { Value = cursoMedico.fecha_atencion},
                         new("i_hora_atencion", MySqlDbType.VarChar) { Value = cursoMedico.hora_atencion},

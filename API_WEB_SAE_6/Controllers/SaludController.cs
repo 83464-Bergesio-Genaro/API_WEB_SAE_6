@@ -36,6 +36,65 @@ namespace API_WEB_SAE_6.Controllers
         /// </summary>
         public SaludController() { }
         /// <summary>
+        /// Recupera todos los estados medicos
+        /// </summary>
+        /// <returns> Un listado de todos los estados posibles del turno</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Salud/ObtenerEstadosTurno/
+        ///     
+        ///     RESPONSE:
+        ///     [
+        ///         {
+        ///             "id": 0,
+        ///             "nombre": "string"
+        ///         }  
+        ///     ]
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve un listado completo de estados </response>
+        /// <response code="204" >No se encontro ningun estado </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>   
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet]
+        [ActionName("ObtenerEstadosTurno")]
+        [Authorize]
+        [ProducesResponseType(typeof(IEnumerable<EstadosTurno>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<IEnumerable<EstadosTurno>> ObtenerEstadosTurno()
+        {
+            try
+            {
+                //El numero de funcion es: 69
+                if (TienePermiso(69))
+                {
+                    List<EstadosTurno>? estadosTurno = HealthAdapter.ObtenerEstadoTurno();
+
+                    if (estadosTurno == null) return Conflict();
+                    if (estadosTurno.Count == 0) return NoContent();
+
+                    return Ok(estadosTurno);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+        /// <summary>
         /// Recupera todos las especialidades medicas del area
         /// </summary>
         /// <returns> Un listado de todas las especialidades</returns>

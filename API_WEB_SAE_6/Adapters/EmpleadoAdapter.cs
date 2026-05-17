@@ -361,7 +361,6 @@ namespace API_WEB_SAE_6.Adapters
                         new("i_hora_inicio", MySqlDbType.Date) { Value = horario.hora_inicio },
                         new("i_hora_fin", MySqlDbType.Date) { Value = horario.hora_fin },
                         new("i_dia", MySqlDbType.Int32) { Value = horario.dia },
-                        new("i_activo", MySqlDbType.Bit) { Value = horario.activo },
                         new("i_id_empleado", MySqlDbType.Int32) { Value = horario.id_empleado },
                         new("i_id_usuario_mod", MySqlDbType.Int32) { Value = usuarioActual},];
                     GeneralAdapterMySQL consult = new();
@@ -394,7 +393,6 @@ namespace API_WEB_SAE_6.Adapters
                         new("i_hora_inicio", MySqlDbType.Date) { Value = horario.hora_inicio },
                         new("i_hora_fin", MySqlDbType.Date) { Value = horario.hora_fin },
                         new("i_dia", MySqlDbType.Int32) { Value = horario.dia },
-                        new("i_activo", MySqlDbType.Bit) { Value = horario.activo },
                         new("i_id_empleado", MySqlDbType.Int32) { Value = horario.id_empleado },
                         new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idCreacion},];
 
