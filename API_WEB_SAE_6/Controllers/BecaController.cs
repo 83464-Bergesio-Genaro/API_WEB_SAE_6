@@ -1307,13 +1307,14 @@ namespace API_WEB_SAE_6.Controllers
         /// Permite crear un becario de beca de investigacion
         /// </summary>
         /// <param name="id_becario">El ID del becario  que deseamos crearle una beca de investigacion, se envia en el Body</param>
+        /// <param name="id_proyecto_investigacion">El ID del proyecto de investigacion</param>
         /// <returns>Un becario de beca de investigacion creado en la base de datos o error</returns>
         /// <remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization y debe haber creado el registro del becario antes
         ///  
         /// Ejemplo de uso:
         /// 
-        ///     POST /api/Beca/CrearBecarioInvestigacion/{"id_becario"}
+        ///     POST /api/Beca/CrearBecarioInvestigacion/{"id_becario"}/{"id_proyecto_investigacion"}
         ///     
         ///     RESPONSE:
         ///     {
@@ -1348,7 +1349,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="403" >Su perfil no cuenta con este permiso</response>
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpPost("{id_becario}")]
+        [HttpPost("{id_becario}/{id_proyecto_investigacion}")]
         [ActionName("CrearBecarioInvestigacion")]
         [ProducesResponseType(typeof(BecariosSAEInvestigacion), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -1356,7 +1357,7 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<BecariosSAEInvestigacion> CrearBecarioInvestigacion(int id_becario)
+        public ActionResult<BecariosSAEInvestigacion> CrearBecarioInvestigacion(int id_becario,int id_proyecto_investigacion)
         {
             try
             {
@@ -1369,7 +1370,7 @@ namespace API_WEB_SAE_6.Controllers
                         userData != "NO DATA" &&
                         int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        BecariosSAEInvestigacion becario = BecAdapter.CrearBecarioInvestigacion(id_becario, idUserCrea);
+                        BecariosSAEInvestigacion becario = BecAdapter.CrearBecarioInvestigacion(id_becario, id_proyecto_investigacion, idUserCrea);
                         if (becario.id != -1) return Created("Becario Creado", becario);
                         else return Conflict();
                     }
@@ -1806,13 +1807,14 @@ namespace API_WEB_SAE_6.Controllers
         /// Permite crear un becario de beca de servicio
         /// </summary>
         /// <param name="id_becario">El ID del becario que deseamos crearle una beca de servicio, se envia en el Body</param>
+        /// <param name="id_servicio">El ID del servicio que deseamos crearle una beca de servicio, se envia en el Body</param>
         /// <returns>Un becario de beca de servicio creado en la base de datos o error</returns>
         /// <remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization y debe haber creado el registro del becario antes
         ///  
         /// Ejemplo de uso:
         /// 
-        ///     POST /api/Beca/CrearBecarioServicio/{"id_becario"}
+        ///     POST /api/Beca/CrearBecarioServicio/{"id_becario"}/{"id_servicio"}
         ///     
         ///     RESPONSE:
         ///     {
@@ -1850,7 +1852,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="403" >Su perfil no cuenta con este permiso</response>
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpPost("{id_becario}")]
+        [HttpPost("{id_becario}/{id_servicio}")]
         [ActionName("CrearBecarioServicio")]
         [ProducesResponseType(typeof(BecariosSAEServicio), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -1858,7 +1860,7 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<BecariosSAEServicio> CrearBecarioServicio(int id_becario)
+        public ActionResult<BecariosSAEServicio> CrearBecarioServicio(int id_becario,int id_servicio)
         {
             try
             {
@@ -1871,7 +1873,7 @@ namespace API_WEB_SAE_6.Controllers
                         userData != "NO DATA" &&
                         int.TryParse(userData.Split(',')[2], out int idUserCrea))
                     {
-                        BecariosSAEServicio becario = BecAdapter.CrearBecarioServicio(id_becario, idUserCrea);
+                        BecariosSAEServicio becario = BecAdapter.CrearBecarioServicio(id_becario, id_servicio, idUserCrea);
                         if (becario.id != -1) return Created("Becario Creado", becario);
                         else return Conflict();
                     }

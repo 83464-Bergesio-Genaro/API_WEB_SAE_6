@@ -562,9 +562,10 @@ namespace API_WEB_SAE_6.Adapters
         /// 
         /// </summary>
         /// <param name="idBecario"></param>
+        /// <param name="idProyectoInvestigacion"></param>
         /// <param name="idUserCreacion"></param>
         /// <returns></returns>
-        public BecariosSAEInvestigacion CrearBecarioInvestigacion(int idBecario, int idUserCreacion)
+        public BecariosSAEInvestigacion CrearBecarioInvestigacion(int idBecario, int idProyectoInvestigacion, int idUserCreacion)
         {
             if (MotorDB == "MySQL")
             {
@@ -573,7 +574,7 @@ namespace API_WEB_SAE_6.Adapters
                     //Inicializa un valor y le asigna el tipo
                     List<MySqlParameter> parameters = [
                         new("i_id_becario", MySqlDbType.Int32) { Value = idBecario},
-                        new("i_id_proyecto_investigacion", MySqlDbType.Int32) { Value = idBecario},
+                        new("i_id_proyecto", MySqlDbType.Int32) { Value = idProyectoInvestigacion},
                         new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idUserCreacion }
                         ];
 
@@ -752,8 +753,9 @@ namespace API_WEB_SAE_6.Adapters
         /// </summary>
         /// <param name="idBecario"></param>
         /// <param name="idUserCreacion"></param>
+        /// <param name="idServicio"></param>
         /// <returns></returns>
-        public BecariosSAEServicio CrearBecarioServicio(int idBecario, int idUserCreacion)
+        public BecariosSAEServicio CrearBecarioServicio(int idBecario,int idServicio, int idUserCreacion)
         {
             if (MotorDB == "MySQL")
             {
@@ -762,7 +764,7 @@ namespace API_WEB_SAE_6.Adapters
                     //Inicializa un valor y le asigna el tipo
                     List<MySqlParameter> parameters = [
                         new("i_id_becario", MySqlDbType.Int32) { Value = idBecario},
-                        new("i_id_servicio", MySqlDbType.Int32) { Value = idBecario},
+                        new("i_id_servicio", MySqlDbType.Int32) { Value = idServicio},
                         new("i_id_usuario_alta", MySqlDbType.Int32) { Value = idUserCreacion }
                         ];
 

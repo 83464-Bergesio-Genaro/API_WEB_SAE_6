@@ -20,7 +20,7 @@ namespace API_WEB_SAE_6.Models
         /// <summary></summary>
         public bool? puede_pagarle { get; set; }
         /// <summary></summary>
-        public bool activo { get; set; } = false;
+        public bool? activo { get; set; } = false;
         /// <summary></summary>
         public int anio_beca { get; set; }=-1;
         /// <summary></summary>

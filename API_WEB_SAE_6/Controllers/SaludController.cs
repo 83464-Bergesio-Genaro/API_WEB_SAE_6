@@ -1097,6 +1097,65 @@ namespace API_WEB_SAE_6.Controllers
             }
         }
         /// <summary>
+        /// Recupera las faltas del especialista
+        /// </summary>
+        /// <param name="cuil">El identificador de esta persona</param>
+        /// <returns>Un listado con todas las faltas</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Salud/ObtenerFaltasEspecialista/{cuil}
+        ///     
+        ///     RESPONSE:
+        ///     [
+        ///         {
+        ///           "id": 0,
+        ///           "cuil_especialista": "string",
+        ///           "fecha_alta": "2024-07-08T20:20:49.743Z",
+        ///           "observacion": "string",
+        ///         }
+        ///     ]
+        /// </remarks>
+        /// <response code="200" >Devuelve un listado de las faltas de este especialista </response>
+        /// <response code="204" >No se encontro ninguna falta </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>        
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet("{cuil}")]
+        [ActionName("ObtenerFaltasEspecialista")]
+        [Authorize]
+        [ProducesResponseType(typeof(IEnumerable<FaltaEspecialista>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<IEnumerable<FaltaEspecialista>> ObtenerFaltasEspecialista(string cuil)
+        {
+            try
+            {
+                if (TienePermiso(74))
+                {
+                    List<FaltaEspecialista>? cursos = HealthAdapter.ObtenerFaltasXEspecialista(cuil);
+                    if (cursos == null) return Conflict();
+                    if (cursos.Count == 0) return NoContent();
+                    else return Ok(cursos);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+
+        /// <summary>
         /// Permite registrar la inasistencia de un especialista
         /// </summary>
         /// <param name="faltaEspecialista">La inasistencia que deseamos crear, se envia en el Body</param>

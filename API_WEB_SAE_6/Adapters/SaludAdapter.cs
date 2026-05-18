@@ -499,6 +499,41 @@ namespace API_WEB_SAE_6.Adapters
             else return true;
         }
         /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public List<FaltaEspecialista>? ObtenerFaltasXEspecialista(string cuil)
+        {
+            string method = "ObtenerFaltasXEspecialista";
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    List<MySqlParameter> parameters = [new("i_cuil_especialista", MySqlDbType.VarChar) { Value = cuil }];
+
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_SALUD_Listar_Faltas_X_Especialista", parameters);
+                    //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
+                    if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
+
+                    List<FaltaEspecialista> listadoFaltas = [];
+                    foreach (DataRow row in respuesta.Rows)
+                    {
+                        FaltaEspecialista cur = new(row);
+                        listadoFaltas.Add(cur);
+                    }
+                    return listadoFaltas;
+                }
+                else return null;
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, "SaludAdapter");
+                return null;
+            }
+        }
+        /// <summary>
         /// Crea un nuevo especialista medico, devuelve el especialista medico creado con su informacion completa, devuelve un objeto vacio si el resultado es correcto pero no hay datos, devuelve null si ocurre un error
         /// </summary>
         /// <param name="faltaEsp"></param>
