@@ -26,6 +26,10 @@ namespace API_WEB_SAE_6.Models
             this.estado_turno = estado_turno;
         }
         /// <summary>
+        /// Es necesario un constructor por defecto para poder crear objetos de la clase EstadosTurno sin necesidad de proporcionar datos iniciales, lo cual es útil en situaciones donde se requiere crear instancias de la clase sin tener información específica sobre el estado del turno en el momento de la creación del objeto. Este constructor permite la flexibilidad de inicializar las propiedades del objeto posteriormente, según sea necesario en la lógica de la aplicación.
+        /// </summary>
+        public EstadosTurno() { }
+        /// <summary>
         /// Este constructor es para consumirlo desde la vista directamente desde la base de datos.
         /// </summary>
         /// <param name="data">Una fila de datos</param>

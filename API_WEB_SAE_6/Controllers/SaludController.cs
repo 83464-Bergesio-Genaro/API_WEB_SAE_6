@@ -1549,15 +1549,15 @@ namespace API_WEB_SAE_6.Controllers
             }
         }
         /// <summary>
-        /// Recupera los turnos pendientes
+        /// Recupera los turnos activos
         /// </summary>
-        /// <returns>Un listado con todos los turnos medicos pendientes</returns>
+        /// <returns>Un listado con todos los turnos medicos activos</returns>
         /// <remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
         ///  
         /// Ejemplo de uso:
         /// 
-        ///     GET /api/Salud/ObtenerTurnosMedicosPendientes/
+        ///     GET /api/Salud/ObtenerTurnosMedicosActivos/
         ///     
         ///     RESPONSE:
         ///     [
@@ -1577,7 +1577,7 @@ namespace API_WEB_SAE_6.Controllers
         ///     ]
         ///     
         /// </remarks>
-        /// <response code="200" >Devuelve un listado con los turnos medicos pendientes </response>
+        /// <response code="200" >Devuelve un listado con los turnos medicos activos </response>
         /// <response code="204" >No se encontro ningun turno pendiente</response>
         /// <response code="400" >Ocurre un error en la consulta </response>
         /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
@@ -1585,7 +1585,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpGet]
-        [ActionName("ObtenerTurnosMedicosPendientes")]
+        [ActionName("ObtenerTurnosMedicosActivos")]
         [Authorize]
         [ProducesResponseType(typeof(IEnumerable<TurnosMedicos>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -1594,13 +1594,13 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<IEnumerable<TurnosMedicos>> ObtenerTurnosMedicosPendientes()
+        public ActionResult<IEnumerable<TurnosMedicos>> ObtenerTurnosActivos()
         {
             try
             {
                 if (TienePermiso(83))
                 {
-                    List<TurnosMedicos>? cursos = HealthAdapter.ObtenerTurnosMedicosPendientes();
+                    List<TurnosMedicos>? cursos = HealthAdapter.ObtenerTurnosMedicosActivos();
                     if (cursos == null) return Conflict();
                     if (cursos.Count == 0) return NoContent();
                     else return Ok(cursos);
@@ -1614,15 +1614,15 @@ namespace API_WEB_SAE_6.Controllers
             }
         }
         /// <summary>
-        /// Un listado de turnos asignados
+        /// Un listado de turnos finalizados
         /// </summary>
-        /// <returns>Un listado de turnos que esten en estado asignado</returns>
+        /// <returns>Un listado de turnos que esten en estado finalizado</returns>
         /// <remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
         ///  
         /// Ejemplo de uso:
         /// 
-        ///     GET /api/Salud/ObtenerTurnosMedicosAsignados/
+        ///     GET /api/Salud/ObtenerTurnosMedicosFinalizados/
         ///     
         ///     RESPONSE:
         ///     [
@@ -1642,15 +1642,15 @@ namespace API_WEB_SAE_6.Controllers
         ///     ]
         ///     
         /// </remarks>
-        /// <response code="200" >Devuelve un listado con los turnos medicos asignados </response>
-        /// <response code="204" >No se encontro ningun turno asignado</response>
+        /// <response code="200" >Devuelve un listado con los turnos medicos finalizados </response>
+        /// <response code="204" >No se encontro ningun turno finalizado</response>
         /// <response code="400" >Ocurre un error en la consulta </response>
         /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
         /// <response code="403" >Su perfil no cuenta con este permiso</response>        
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpGet]
-        [ActionName("ObtenerTurnosMedicosAsignados")]
+        [ActionName("ObtenerTurnosMedicosFinalizados")]
         [Authorize]
         [ProducesResponseType(typeof(IEnumerable<TurnosMedicos>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -1659,13 +1659,13 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<IEnumerable<TurnosMedicos>> ObtenerTurnosMedicosAsignados()
+        public ActionResult<IEnumerable<TurnosMedicos>> ObtenerTurnosMedicosFinalizados()
         {
             try
             {
                 if (TienePermiso(83))
                 {
-                    List<TurnosMedicos>? cursos = HealthAdapter.ObtenerTurnosMedicosAsignados();
+                    List<TurnosMedicos>? cursos = HealthAdapter.ObtenerTurnosMedicosFinalizados();
                     if (cursos == null) return Conflict();
                     if (cursos.Count == 0) return NoContent();
                     else return Ok(cursos);
@@ -1679,15 +1679,15 @@ namespace API_WEB_SAE_6.Controllers
             }
         }
         /// <summary>
-        /// Un listado de turnos en curso
+        /// Un listado de turnos cancelados
         /// </summary>
-        /// <returns>Un listado de turnos que esten en estado en curso</returns>
+        /// <returns>Un listado de turnos que esten cancelados</returns>
         /// <remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
         ///  
         /// Ejemplo de uso:
         /// 
-        ///     GET /api/Salud/ObtenerTurnosMedicosEnCurso/
+        ///     GET /api/Salud/ObtenerTurnosMedicosCancelados/
         ///     
         ///     RESPONSE:
         ///     [
@@ -1707,15 +1707,15 @@ namespace API_WEB_SAE_6.Controllers
         ///     ]
         ///     
         /// </remarks>
-        /// <response code="200" >Devuelve un listado con los turnos medicos en curso </response>
-        /// <response code="204" >No se encontro ningun turno en curso</response>
+        /// <response code="200" >Devuelve un listado con los turnos medicos cancelados</response>
+        /// <response code="204" >No se encontro ningun turno cancelado</response>
         /// <response code="400" >Ocurre un error en la consulta </response>
         /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
         /// <response code="403" >Su perfil no cuenta con este permiso</response>        
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpGet]
-        [ActionName("ObtenerTurnosMedicosEnCurso")]
+        [ActionName("ObtenerTurnosMedicosCancelado")]
         [Authorize]
         [ProducesResponseType(typeof(IEnumerable<TurnosMedicos>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -1724,13 +1724,13 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<IEnumerable<TurnosMedicos>> ObtenerTurnosMedicosEnCurso()
+        public ActionResult<IEnumerable<TurnosMedicos>> ObtenerTurnosMedicosCancelado()
         {
             try
             {
                 if (TienePermiso(83))
                 {
-                    List<TurnosMedicos>? cursos = HealthAdapter.ObtenerTurnosMedicosEnCurso();
+                    List<TurnosMedicos>? cursos = HealthAdapter.ObtenerTurnosMedicosCancelado();
                     if (cursos == null) return Conflict();
                     if (cursos.Count == 0) return NoContent();
                     else return Ok(cursos);

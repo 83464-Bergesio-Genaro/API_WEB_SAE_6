@@ -722,16 +722,16 @@ namespace API_WEB_SAE_6.Adapters
         /// 
         /// </summary>
         /// <returns></returns>
-        public List<TurnosMedicos>? ObtenerTurnosMedicosPendientes()
+        public List<TurnosMedicos>? ObtenerTurnosMedicosActivos()
         {
-            string method = "ObtenerTurnosMedicosPendientes";
+            string method = "ObtenerTurnosMedicosActivos";
             try
             {
                 //Por si algun momento les pinta cambiar de motor nuevamente
                 if (MotorDB == "MySQL")
                 {
                     GeneralAdapterMySQL consultor = new();
-                    DataTable respuesta = consultor.ExecuteView("MODULO_SALUD_Visualizar_Turnos_Pendientes");
+                    DataTable respuesta = consultor.ExecuteView("MODULO_SALUD_Visualizar_Turnos_Activos");
                     //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
                     if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
 
@@ -755,16 +755,16 @@ namespace API_WEB_SAE_6.Adapters
         /// 
         /// </summary>
         /// <returns></returns>
-        public List<TurnosMedicos>? ObtenerTurnosMedicosAsignados()
+        public List<TurnosMedicos>? ObtenerTurnosMedicosFinalizados()
         {
-            string method = "ObtenerTurnosMedicosAsignados";
+            string method = "ObtenerTurnosMedicosFinalizados";
             try
             {
                 //Por si algun momento les pinta cambiar de motor nuevamente
                 if (MotorDB == "MySQL")
                 {
                     GeneralAdapterMySQL consultor = new();
-                    DataTable respuesta = consultor.ExecuteView("MODULO_SALUD_Visualizar_Turnos_Asignados");
+                    DataTable respuesta = consultor.ExecuteView("MODULO_SALUD_Visualizar_Turnos_Finalizados");
                     //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
                     if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
 
@@ -788,16 +788,16 @@ namespace API_WEB_SAE_6.Adapters
         /// 
         /// </summary>
         /// <returns></returns>
-        public List<TurnosMedicos>? ObtenerTurnosMedicosEnCurso()
+        public List<TurnosMedicos>? ObtenerTurnosMedicosCancelado()
         {
-            string method = "ObtenerTurnosMedicosEnCurso";
+            string method = "ObtenerTurnosMedicosCancelado";
             try
             {
                 //Por si algun momento les pinta cambiar de motor nuevamente
                 if (MotorDB == "MySQL")
                 {
                     GeneralAdapterMySQL consultor = new();
-                    DataTable respuesta = consultor.ExecuteView("MODULO_SALUD_Visualizar_Turnos_En_Curso");
+                    DataTable respuesta = consultor.ExecuteView("MODULO_SALUD_Visualizar_Turnos_Cancelados");
                     //Con esto verificamos que no haya ocurrido un error, en la capa superior levanta el 409 conflict
                     if (respuesta.Rows.Count > 0 && respuesta.Rows[0][0].ToString() == "ERROR") return null;
 
