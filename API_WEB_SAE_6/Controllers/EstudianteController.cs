@@ -4,8 +4,10 @@ using API_WEB_SAE_6.Models;
 using API_WEB_SAE_6.Tools;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace API_WEB_SAE_6.Controllers
@@ -34,7 +36,148 @@ namespace API_WEB_SAE_6.Controllers
         /// <summary>
         /// 
         /// </summary>
-        public EstudianteController() {}
+        public EstudianteController() { }
+        /// <summary>
+        /// Recupera los datos del estudiante por su legajo
+        /// </summary>
+        /// <returns>Los datos del estudiante</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     GET /api/Estudiantes/BuscarPerfilEstudiante/{legajo}
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///       "legajo": "83464@sistemas.frc.utn.edu.ar",
+        ///       "nombres": "Bergesio Genaro Rafael",
+        ///       "apellidos": "",
+        ///       "email": "",
+        ///       "telefono": "",
+        ///       "fecha_nacimiento": null,
+        ///       "cuil": "",
+        ///       "dni": "",
+        ///       "direccion": ""
+        ///     }
+        ///     
+        /// </remarks>
+        /// <response code="200" >Devuelve el perfil del estudiante</response>
+        /// <response code="204" >No se encontro ningun estudiante </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>        
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpGet("{legajo}")]
+        [ActionName("BuscarPerfilEstudiante")]
+        [ProducesResponseType(typeof(PerfilEstudiante), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<PerfilEstudiante> BuscarPerfilEstudiante(string legajo)
+        {
+            try
+            {
+                string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+                if (userData != null && userData != "NO DATA" && TienePermiso(154))
+                {
+                    PerfilEstudiante? doc = EstudianteAdapter.BuscarEstudianteXLegajo(legajo);
+                    if (doc != null && doc.legajo != "" && doc.legajo == legajo)
+                        return Ok(doc);
+                    else return NoContent();
+                }
+                else return Unauthorized();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+
+        /// <summary>
+        /// Permite la modificacion del perfil del alumno
+        /// </summary>
+        /// <param name="legajo"> El legajo del estudiante a modificar</param>
+        /// <param name="perfilEstudiante"> Los datos modificados del estudiante</param>
+        /// <returns>Un perfil modificado</returns>
+        /// <remarks>
+        /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
+        ///  
+        /// Ejemplo de uso:
+        /// 
+        ///     PUT /api/Salud/ModificarPerfilEstudiante/{legajo}
+        ///     BODY:
+        ///     {
+        ///       "legajo": "83464@sistemas.frc.utn.edu.ar",
+        ///       "nombres": "Bergesio Genaro Rafael",
+        ///       "apellidos": "",
+        ///       "email": "",
+        ///       "telefono": "",
+        ///       "fecha_nacimiento": null,
+        ///       "cuil": "",
+        ///       "dni": "",
+        ///       "direccion": ""
+        ///     }
+        ///     
+        ///     RESPONSE:
+        ///     {
+        ///       "legajo": "83464@sistemas.frc.utn.edu.ar",
+        ///       "nombres": "Bergesio Genaro Rafael",
+        ///       "apellidos": "",
+        ///       "email": "",
+        ///       "telefono": "",
+        ///       "fecha_nacimiento": null,
+        ///       "cuil": "",
+        ///       "dni": "",
+        ///       "direccion": ""
+        ///     }
+        /// </remarks>
+        /// <response code="200" >Devuelve el estudiante modificado en BD </response>
+        /// <response code="400" >Ocurre un error en la consulta </response>
+        /// <response code="401" >El usuario no genero su JWT o su perfil no cuenta con este permiso </response>
+        /// <response code="403" >Su perfil no cuenta con este permiso</response>
+        /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos y no se modifica el usuario </response>
+        /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [HttpPut("{legajo}")]
+        [ActionName("ModificarPerfilEstudiante")]
+        [Authorize]
+        [ProducesResponseType(typeof(PerfilEstudiante), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public ActionResult<PerfilEstudiante> ModificarPerfilEstudiante(string legajo, [FromBody, Required] PerfilEstudiante perfilEstudiante)
+        {
+            try
+            {
+                if (legajo != perfilEstudiante.legajo) return BadRequest();
+                //El numero de funcion es: 71
+                if (TienePermiso(154))
+                {
+                    string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+                    if (userData != null &&
+                       userData.Length > 0 &&
+                       userData != "NO DATA" &&
+                       int.TryParse(userData.Split(',')[2], out int idUserMod))
+                    {
+                        perfilEstudiante = EstudianteAdapter.ModificarEstudiante(perfilEstudiante);
+                        if (perfilEstudiante.legajo != "") return Ok(perfilEstudiante);
+                        else return Conflict();
+                    }
+                    else return Unauthorized();
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
         /// <summary>
         /// Recupera un documento por su ID
         /// </summary>

@@ -18,6 +18,72 @@ namespace API_WEB_SAE_6.Adapters
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="legajo"></param>
+        /// <returns></returns>
+        public PerfilEstudiante? BuscarEstudianteXLegajo(string legajo)
+        {
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    //Inicializa un valor y le asigna el tipo
+                    List<MySqlParameter> parameters = [new("i_legajo", MySqlDbType.VarChar) { Value = legajo }];
+                    GeneralAdapterMySQL consultor = new();
+                    DataTable respuesta = consultor.ExecuteStoredProcedure("MODULO_ESTUDIANTE_Buscar_Datos_Estudiante", parameters);
+
+                    if (respuesta.Rows.Count == 0) return new();
+                    if (respuesta.Rows[0][0].ToString() == "ERROR") return null;
+                    else return new PerfilEstudiante(respuesta.Rows[0]);
+                }
+                else return new();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, "BuscarEstudianteXLegajo", ex.Message, "EstudianteAdapter");
+                return null;
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="perfiles"></param>
+        /// <returns></returns>
+        public PerfilEstudiante ModificarEstudiante(PerfilEstudiante perfiles)
+        {
+            string method = "ModificarEstudiante";
+            try
+            {
+                //Por si algun momento les pinta cambiar de motor nuevamente
+                if (MotorDB == "MySQL")
+                {
+                    List<MySqlParameter> parameters = [
+                        new("i_legajo", MySqlDbType.Int32) { Value = perfiles.legajo },
+                        new("i_nombres", MySqlDbType.VarChar) { Value = perfiles.nombres},
+                        new("i_apellidos", MySqlDbType.VarChar) { Value = perfiles.apellidos},
+                        new("i_email", MySqlDbType.Int32) { Value = perfiles.email },//Lo pasa a pendiente si no tiene ningun estado asignado
+                        new("i_contacto", MySqlDbType.Date) { Value =perfiles.telefono},
+                        new("i_fecha_nacimiento", MySqlDbType.Date) { Value = perfiles.fecha_nacimiento},
+                        new("i_cuil", MySqlDbType.VarChar) { Value = perfiles.cuil},
+                        new("i_dni", MySqlDbType.VarChar) { Value = perfiles.dni},
+                        new("i_domicilio", MySqlDbType.VarChar) { Value = perfiles.direccion}
+                        ];
+                    GeneralAdapterMySQL consult = new();
+                    DataTable respuesta = consult.ExecuteStoredProcedure("MODULO_ESTUDIANTE_Modificar_Datos_Estudiante", parameters);
+                    if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR") return new();
+                    else return new(respuesta.Rows[0]);
+                }
+                else return new();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, method, ex.Message, "EstudianteAdapter");
+                return new();
+            }
+        }
+        /// <summary>
+        /// 
+        /// </summary>
         /// <param name="idDoc"></param>
         /// <returns></returns>
         public DocumentosEstudiante? BuscarDocumentoXId(int idDoc)
