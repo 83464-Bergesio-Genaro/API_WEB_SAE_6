@@ -323,8 +323,11 @@ namespace API_WEB_SAE_6.Controllers
                     {
                         List<DocumentosEstudiante>? documentos = EstudianteAdapter.BuscarDocumentosXLegajo(legajo);
 
-                        if (documentos != null &&
-                            documentos.Count > 0 ) return Ok(documentos);
+                        if (documentos != null)
+                        {
+                            if(documentos.Count > 0) return Ok(documentos);
+                            else return NoContent();
+                        }  
                         else
                         {
                             Logger.RegistrarDatos(Logger.LogOptions.Alerta, "DescargarDocumentacionXId", "Intento descargar documentacion que no era suya conociendo el ID del mismo. HOST:" + HttpContext.Request.Host.Value, ControllerName);
