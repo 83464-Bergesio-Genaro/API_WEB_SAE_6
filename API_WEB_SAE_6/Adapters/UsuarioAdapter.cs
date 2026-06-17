@@ -1,5 +1,6 @@
 ﻿using API_WEB_SAE_6.Logs;
-using API_WEB_SAE_6.Models;
+using API_WEB_SAE_6.Models.Usuario;
+using API_WEB_SAE_6.Tools;
 using MySqlConnector;
 using System.Data;
 using System.Security.Claims;
@@ -291,8 +292,8 @@ namespace API_WEB_SAE_6.Adapters
             //Si ya tiene en la cache no los vuelve a buscar
             if (permisosRegistrados != null && permisosRegistrados.Count > 0)
             {
-                List<FuncionesXPerfiles> permisos = permisosRegistrados.Where(x => x.id_perfil == id_perfil
-                && x.id_funcion == id_funcion).ToList();
+                List<FuncionesXPerfiles> permisos = [.. permisosRegistrados.Where(x => x.id_perfil == id_perfil
+                && x.id_funcion == id_funcion)];
                 if (permisos.Count >= 1) return true;
                 else return false;
             }
