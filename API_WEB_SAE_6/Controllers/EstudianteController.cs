@@ -1,6 +1,6 @@
 ﻿using API_WEB_SAE_6.Adapters;
 using API_WEB_SAE_6.Logs;
-using API_WEB_SAE_6.Models;
+using API_WEB_SAE_6.Models.Estudiante;
 using API_WEB_SAE_6.Tools;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
@@ -256,8 +256,11 @@ namespace API_WEB_SAE_6.Controllers
                             }
                             else return Conflict("Sistema de Archivos no encontrado");
                         }
-                        else return Unauthorized();
-                        
+                        else
+                        {
+                            Logger.RegistrarDatos(Logger.LogOptions.Alerta, this.Request.Path, "Intento descargar documentacion que no era suya conociendo el ID del mismo. HOST:" + HttpContext.Request.Host.Value, ControllerName);
+                            return Forbid();
+                        }
                     }
                     else return NotFound();
                 }
@@ -323,18 +326,14 @@ namespace API_WEB_SAE_6.Controllers
                     {
                         List<DocumentosEstudiante>? documentos = EstudianteAdapter.BuscarDocumentosXLegajo(legajo);
 
-                        if (documentos != null)
-                        {
-                            if(documentos.Count > 0) return Ok(documentos);
-                            else return NoContent();
-                        }  
-                        else
-                        {
-                            Logger.RegistrarDatos(Logger.LogOptions.Alerta, "DescargarDocumentacionXId", "Intento descargar documentacion que no era suya conociendo el ID del mismo. HOST:" + HttpContext.Request.Host.Value, ControllerName);
-                            return Forbid();
-                        }
+                        if (documentos != null && documentos.Count > 0) return Ok(documentos);
+                        else return NoContent();
                     }
-                    return Unauthorized();
+                    else
+                    {
+                        Logger.RegistrarDatos(Logger.LogOptions.Alerta, this.Request.Path, "Intento descargar documentacion que no era suya conociendo el ID del mismo. HOST:" + HttpContext.Request.Host.Value, ControllerName);
+                        return Forbid();
+                    }
                 }
                 else return Unauthorized();
             }

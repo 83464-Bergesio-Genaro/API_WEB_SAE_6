@@ -1,6 +1,6 @@
 ﻿using API_WEB_SAE_6.Adapters;
 using API_WEB_SAE_6.Logs;
-using API_WEB_SAE_6.Models;
+using API_WEB_SAE_6.Models.Usuario;
 using API_WEB_SAE_6.Tools;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
@@ -687,7 +687,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <param name="apellidos">Los apellidos de dicha persona en el sistema academico</param>
         /// <param name="id_especialidad">La especialidad la cual cursa. Puede ser nula en caso de empleados</param>
         /// <returns>Un usuario creado en la base de datos o error</returns>
-        /// <remarks>
+        /// <remarks></remarks>
         /// NOTA: Es necesario usar el JWT en el encabezado de Authorization
         [HttpPost]
         [Authorize]

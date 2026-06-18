@@ -1,5 +1,6 @@
 ﻿using API_WEB_SAE_6.Logs;
-using API_WEB_SAE_6.Models;
+using API_WEB_SAE_6.Models.Empleados;
+using API_WEB_SAE_6.Models.Usuario;
 using MySqlConnector;
 using System.Data;
 
@@ -473,7 +474,7 @@ namespace API_WEB_SAE_6.Adapters
                     List<MySqlParameter> parameters = [new("i_id_item_linktree", MySqlDbType.Int32) { Value = idLinktree }];
 
                     GeneralAdapterMySQL consultor = new();
-                    DataTable respuesta = consultor.ExecuteStoredProcedure("MODULO_EMPLEADOS_Visualizacion_Item_Linktree");
+                    DataTable respuesta = consultor.ExecuteStoredProcedure("MODULO_EMPLEADOS_Visualizacion_Item_Linktree", parameters);
                     if (respuesta.Rows.Count == 0 || respuesta.Rows[0][0].ToString() == "ERROR" || respuesta.Rows[0][0].ToString() != "VISUALIZADO") return false;
                     else return true;
                 }

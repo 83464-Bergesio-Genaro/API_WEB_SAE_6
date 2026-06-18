@@ -1,6 +1,7 @@
 ﻿using API_WEB_SAE_6.Adapters;
 using API_WEB_SAE_6.Logs;
-using API_WEB_SAE_6.Models;
+using API_WEB_SAE_6.Models.Herramientas;
+using API_WEB_SAE_6.Models.Usuario;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
