@@ -405,7 +405,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpPost]
-        [ActionName("CrerInforme")]
+        [ActionName("CrearInforme")]
         [Authorize]
         [ProducesResponseType(typeof(InformesTecnicoCompra), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -413,7 +413,7 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<InformesTecnicoCompra> CrerInforme([FromBody] InformesTecnicoCompra informeTecnico)
+        public ActionResult<InformesTecnicoCompra> CrearInforme([FromBody] InformesTecnicoCompra informeTecnico)
         {
             try
             {
@@ -687,7 +687,7 @@ namespace API_WEB_SAE_6.Controllers
                                 id_tipo_documento = idTipoDocumento,//Tengo que ver que hago con esto
                                 nombre_documento = archivo.FileName,
                                 id_compra = idCompra,
-                                ruta = Path.Combine("Viajes", today, fileName),//Es una ruta relativa desde el origen del sistema de archivos
+                                ruta = Path.Combine("Compras", today, fileName),//Es una ruta relativa desde el origen del sistema de archivos
                                 tamanio = archivo.Length
                             };
 
