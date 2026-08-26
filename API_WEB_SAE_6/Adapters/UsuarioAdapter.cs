@@ -1,5 +1,4 @@
-﻿using API_WEB_SAE_6.Logs;
-using API_WEB_SAE_6.Models.Usuario;
+﻿using API_WEB_SAE_6.Models.Usuario;
 using API_WEB_SAE_6.Tools;
 using MySqlConnector;
 using System.Data;

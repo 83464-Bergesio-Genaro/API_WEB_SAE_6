@@ -1,7 +1,7 @@
 ﻿using API_WEB_SAE_6.Adapters;
-using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models.Usuario;
 using API_WEB_SAE_6.Tools;
+using Azure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +12,7 @@ using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
+using TransporteBoleto_API.Tools;
 
 namespace API_WEB_SAE_6.Controllers
 {
@@ -31,21 +32,13 @@ namespace API_WEB_SAE_6.Controllers
         /// <summary>
         /// 
         /// </summary>
-        private readonly string SecretKey;
-        /// <summary>
-        /// 
-        /// </summary>
         private readonly string ControllerName = "UsuariosController";
-
+        private readonly GestorToken gestorToken;
         /// <summary>
         /// Recupera el contexto desde el archivo API_WEB_SAEContext <br/>
         /// </summary>
 
-        public UsuariosController()
-        {
-            //Funciona asi y no recuperando la clave correcta, desconozco el origen del problema
-            SecretKey = SettingsReader.GetAppSettings().SecretKey;
-        }
+        public UsuariosController(GestorToken gestorToken) => this.gestorToken = gestorToken;
         /// <summary>
         /// Lo utilizo para probar si funciona la API en diferentes entornos
         /// </summary>
@@ -72,104 +65,161 @@ namespace API_WEB_SAE_6.Controllers
             return Ok("Hello World! V3");
         }
         /// <summary>
-        /// Es el metodo para realizar consultas a la web de frc.utn.edu.ar para validar las credenciales de los estudiantes.
+        /// 
         /// </summary>
-        /// <param name="legajo">Un valor provisto por el centro de computos unico e irrepetible</param>
-        /// <param name="password">La credencial de la persona</param>
-        /// <param name="dominio">Es adonde el usuario esta cargado</param>
-        /// <returns>Retorna un string con el nombre de la persona</returns>
-        private async Task<string> CheckSessionA4(string legajo,string password,string dominio)
+        /// <param name="legajo"></param>
+        /// <param name="password"></param>
+        /// <param name="dominio"></param>
+        /// <returns></returns>
+        private async Task<string> CheckAPISso(string legajo, string password, string dominio)
         {
             try
             {
-                //BORRAR CUANDO DESCUBRA COMO CAMBIAR MIS CREDENCIALES EN A4
-                if (legajo == "gbergesio" && dominio == "frc" && password == "SAEGestion>A4") return "Genaro Rafael Bergesio";
-                HttpClientHandler handler = new()
+                if (SettingsReader.GetAppSettings().Environment == "DESA" && legajo == "gbergesio" && dominio == "frc" && password == "SAEGestion>A4") return "Genaro Rafael Bergesio";
+                using HttpClient client = new();
+                string urlApi = "https://sso.frc.utn.edu.ar/api/";
+
+                //Tenemos que agregar el header que pidieron
+                client.DefaultRequestHeaders.Add("X-SSO-API-KEY", SettingsReader.GetAppSettings().Sso_api_key);
+
+                // Esta es la solicitud que plantearon
+                var parametros = new Dictionary<string, string>
                 {
-                    CookieContainer = new CookieContainer(),
-                    AllowAutoRedirect = false
+                    { "usr", legajo },
+                    { "pwd", password },
+                    { "domain", dominio }
                 };
 
-                HttpClient client = new HttpClient(handler);
+                using HttpContent content = new FormUrlEncodedContent(parametros);
 
-                // abrir la página de login primero
-                await client.GetAsync("https://sso.frc.utn.edu.ar/");
-                client.DefaultRequestHeaders.Add("Origin", "https://sso.frc.utn.edu.ar/");
-                client.DefaultRequestHeaders.Add("Referer", "https://sso.frc.utn.edu.ar/");
-
-                FormUrlEncodedContent content = new(new Dictionary<string, string>()
+                try
                 {
-                    {"userid", "userid"},
-                    {"t", "79845687"},
-                    {"page", "login"},
-                    {"redir", "/logon.frc"},
-                    {"txtUsuario", legajo},
-                    {"txtDominios", dominio},
-                    {"pwdClave", password}
-                });
-            
+                    HttpResponseMessage response = await client.PostAsync(urlApi, content);
 
-                HttpResponseMessage response = await client.PostAsync(
-                    "https://sso.frc.utn.edu.ar/funciones/sesion/iniciarSesion.frc",
-                    content
-                );
-                
-                //Revisamos si con las credenciales que nos dio la persona es valido su sesion.
-                //Cuando funcion en teoria devuelve el codigo 302 y nos redirige a "/"
-                if(response.Headers.Location != null && response.StatusCode == HttpStatusCode.Found && response.Headers.Location.ToString() == "/")
-                {
-                    CookieCollection cookiesSistema = handler.CookieContainer.GetCookies(new Uri("https://www.frc.utn.edu.ar"));
-                    if (cookiesSistema.Count == 2)
+                    string resultado = await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
                     {
-                        client.DefaultRequestHeaders.Add(
-                            "User-Agent",
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
-                        );
-                        client.DefaultRequestHeaders.Add("Accept", "text/html");
-
-                        string bodyHtml;
-                        //Legajos numericos son de estudiantes buscamos su nombre completo
-                        if (int.TryParse(legajo, out int _))
-                        {
-                            bodyHtml = await (await client.GetAsync("https://a4.frc.utn.edu.ar/4/")).Content.ReadAsStringAsync();
-                            Match match = Regex.Match(bodyHtml, @"var\s+nombreCompleto\s*=\s*'([^']*)'");
-
-                            if (match.Success)
-                                return match.Groups[1].Value;
-                            else return "ERROR";
-                        }
-                        else
-                        {
-                            //A los docentes los redirige aca 
-                            bodyHtml = await (await client.GetAsync("https://www.frc.utn.edu.ar/academico3/")).Content.ReadAsStringAsync(); ;
-
-                            // 1. Extraer el form específico
-                            var match = Regex.Match(bodyHtml,
-                                @"<form[^>]*id\s*=\s*[""']frmLogOut[""'][^>]*>.*?<strong>(.*?)</strong>.*?</form>",
-                                RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
-                            if (match.Success)
-                                return match.Groups[1].Value;
-                            else return "ERROR";
-                        }
-
+                        return await response.Content.ReadAsStringAsync();
                     }
-                        
                     else
                     {
-                        Logger.RegistrarDatos(Logger.LogOptions.Alerta, Request.Path, "Creo sesion correctamente pero no devolvio el numero correcto de cookies", ControllerName);
+                        Logger.RegistrarDatos(Logger.LogOptions.Alerta, Request.Path, $"Error en la autenticación. Código de estado: {response.StatusCode} , {resultado}", ControllerName);
                         return "ERROR";
                     }
                 }
-                //Las credenciales fallaron
-                else return "ERROR";
+                catch (HttpRequestException e)
+                {
+                    Logger.RegistrarDatos(Logger.LogOptions.Error, Request.Path, $"Falla de comunicación con el servicio: {e.Message}", ControllerName);
+                    return "ERROR";
+                }
+
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, Request.Path, "ERROR CREANDO LAS CREDENCIALES A4", ControllerName);
+                Logger.RegistrarDatos(Logger.LogOptions.Error, Request.Path, $"ERROR: {ex.Message}", ControllerName);
                 return "ERROR";
             }
         }
+        ///// <summary>
+        ///// Es el metodo para realizar consultas a la web de frc.utn.edu.ar para validar las credenciales de los estudiantes.
+        ///// </summary>
+        ///// <param name="legajo">Un valor provisto por el centro de computos unico e irrepetible</param>
+        ///// <param name="password">La credencial de la persona</param>
+        ///// <param name="dominio">Es adonde el usuario esta cargado</param>
+        ///// <returns>Retorna un string con el nombre de la persona</returns>
+        //private async Task<string> CheckSessionA4(string legajo,string password,string dominio)
+        //{
+        //    try
+        //    {
+        //        //BORRAR CUANDO DESCUBRA COMO CAMBIAR MIS CREDENCIALES EN A4
+        //        if (legajo == "gbergesio" && dominio == "frc" && password == "SAEGestion>A4") return "Genaro Rafael Bergesio";
+        //        HttpClientHandler handler = new()
+        //        {
+        //            CookieContainer = new CookieContainer(),
+        //            AllowAutoRedirect = false
+        //        };
+
+        //        HttpClient client = new HttpClient(handler);
+
+        //        // abrir la página de login primero
+        //        await client.GetAsync("https://sso.frc.utn.edu.ar/");
+        //        client.DefaultRequestHeaders.Add("Origin", "https://sso.frc.utn.edu.ar/");
+        //        client.DefaultRequestHeaders.Add("Referer", "https://sso.frc.utn.edu.ar/");
+
+        //        FormUrlEncodedContent content = new(new Dictionary<string, string>()
+        //        {
+        //            {"userid", "userid"},
+        //            {"t", "79845687"},
+        //            {"page", "login"},
+        //            {"redir", "/logon.frc"},
+        //            {"txtUsuario", legajo},
+        //            {"txtDominios", dominio},
+        //            {"pwdClave", password}
+        //        });
+            
+
+        //        HttpResponseMessage response = await client.PostAsync(
+        //            "https://sso.frc.utn.edu.ar/funciones/sesion/iniciarSesion.frc",
+        //            content
+        //        );
+                
+        //        //Revisamos si con las credenciales que nos dio la persona es valido su sesion.
+        //        //Cuando funcion en teoria devuelve el codigo 302 y nos redirige a "/"
+        //        if(response.Headers.Location != null && response.StatusCode == HttpStatusCode.Found && response.Headers.Location.ToString() == "/")
+        //        {
+        //            CookieCollection cookiesSistema = handler.CookieContainer.GetCookies(new Uri("https://www.frc.utn.edu.ar"));
+        //            if (cookiesSistema.Count == 2)
+        //            {
+        //                client.DefaultRequestHeaders.Add(
+        //                    "User-Agent",
+        //                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"
+        //                );
+        //                client.DefaultRequestHeaders.Add("Accept", "text/html");
+
+        //                string bodyHtml;
+        //                //Legajos numericos son de estudiantes buscamos su nombre completo
+        //                if (int.TryParse(legajo, out int _))
+        //                {
+        //                    bodyHtml = await (await client.GetAsync("https://a4.frc.utn.edu.ar/4/")).Content.ReadAsStringAsync();
+        //                    Match match = Regex.Match(bodyHtml, @"var\s+nombreCompleto\s*=\s*'([^']*)'");
+
+        //                    if (match.Success)
+        //                        return match.Groups[1].Value;
+        //                    else return "ERROR";
+        //                }
+        //                else
+        //                {
+        //                    //A los docentes los redirige aca 
+        //                    bodyHtml = await (await client.GetAsync("https://www.frc.utn.edu.ar/academico3/")).Content.ReadAsStringAsync(); ;
+
+        //                    // 1. Extraer el form específico
+        //                    var match = Regex.Match(bodyHtml,
+        //                        @"<form[^>]*id\s*=\s*[""']frmLogOut[""'][^>]*>.*?<strong>(.*?)</strong>.*?</form>",
+        //                        RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+        //                    if (match.Success)
+        //                        return match.Groups[1].Value;
+        //                    else return "ERROR";
+        //                }
+
+        //            }
+                        
+        //            else
+        //            {
+        //                Logger.RegistrarDatos(Logger.LogOptions.Alerta, Request.Path, "Creo sesion correctamente pero no devolvio el numero correcto de cookies", ControllerName);
+        //                return "ERROR";
+        //            }
+        //        }
+        //        //Las credenciales fallaron
+        //        else return "ERROR";
+        //    }
+        //    catch (Exception)
+        //    {
+        //        Logger.RegistrarDatos(Logger.LogOptions.Error, Request.Path, "ERROR CREANDO LAS CREDENCIALES A4", ControllerName);
+        //        return "ERROR";
+        //    }
+        //}
         private static int? ValidarDominio(string dominio)
         {
             return dominio switch
@@ -226,16 +276,8 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<JWToken> ObtenerTokenJWT(string legajo, string dominio,string password)
         {
-            // A desarrollar: Mediante SP recupera el Usuario que esta logueado y su perfil de usuario, eso lo usamos para dejarlo guardado en cada consulta
-            // Ademas renovamos su sesion todas las veces que utiliza un EndPoint (Cuando averigue como).
-
-            //string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
-            if (SecretKey == "ERROR") Conflict();
-
-            //Estoy haciendo basicamente scrapping para corroborar que pusieron bien las credenciales.
-
             //string nombreCompleto = "Bergesio Genaro Rafael";
-            string nombreCompleto = CheckSessionA4(legajo, password, dominio).Result;
+            string nombreCompleto = CheckAPISso(legajo, password, dominio).Result;
             //Verifica que nuestras credenciales son validas en autogestion
             if (nombreCompleto != "ERROR")
             {
@@ -244,7 +286,10 @@ namespace API_WEB_SAE_6.Controllers
                 //Si esta persona no existe en nuestro sistema debemos crear su registro
                 Usuarios? usr = UserAdapter.BuscarUsuarioActivoXLegajo(legajoArmado);
                 if (usr != null && usr.legajo != "" && usr.id_perfil != -1 && usr.id != -1)
-                    return CrearToken(legajoArmado, usr);
+                {
+                    JWToken token = new(legajoArmado, usr.legajo, usr.nombre_usuario, usr.id_perfil);
+                    return Created("/api/Usuarios/ObtenerTokenJWT/", token);
+                }
                 //Usuario no encontrado
                 else
                 {
@@ -254,7 +299,10 @@ namespace API_WEB_SAE_6.Controllers
                     {
                         usr = UserAdapter.CrearEstudiante(legajoArmado, nombreCompleto,"", (int)id_especialidad);
                         if (usr != null && usr.legajo != "" && usr.id_perfil != -1 && usr.id != -1)
-                            return CrearToken(legajoArmado, usr);
+                        {
+                            JWToken token = new(legajoArmado, usr.legajo, usr.nombre_usuario, usr.id_perfil);
+                            return Created("/api/Usuarios/ObtenerTokenJWT/", token);
+                        }
                         else return Conflict();
                     }
                     //Probamos insertandolo en nuestra BD
@@ -308,47 +356,52 @@ namespace API_WEB_SAE_6.Controllers
             {
                 Usuarios? us = UserAdapter.BuscarUsuarioXID(userID);
                 if(us != null && us.legajo != "" && us.id_perfil != -1 && us.id != -1)
-                    return CrearToken(us.legajo, us);
+                {
+                    string ActualToken = gestorToken.CreateToken(us.legajo, us);
+                    JWToken token = new(ActualToken, us.legajo, us.nombre_usuario, us.id_perfil);
+                    return Created("/api/Usuarios/ObtenerTokenJWT/", token);
+                }
+                
                 else return Conflict();
             }
             else return Unauthorized();
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="legajoArmado"></param>
-        /// <param name="usr"></param>
-        /// <returns></returns>
-        private ActionResult<JWToken> CrearToken(string legajoArmado,Usuarios usr)
-        {
-            string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
-            if (ip != null && ip != "" && UserAdapter.CrearSesionUsuario(usr.id))
-            {
-                Logger.RegistrarDatos(Logger.LogOptions.IP, this.Request.Path, "IP: " + ip, ControllerName);
-                byte[] keyBytes = Encoding.UTF8.GetBytes(SecretKey);
-                ClaimsIdentity claims = new();
-                //Guardamos todos los datos necesarios para operar mas adelante
-                string claimValue = legajoArmado + "," + usr.id_perfil + "," + usr.id;
-                claims.AddClaim(new Claim(ClaimTypes.NameIdentifier, claimValue));
+        ///// <summary>
+        ///// 
+        ///// </summary>
+        ///// <param name="legajoArmado"></param>
+        ///// <param name="usr"></param>
+        ///// <returns></returns>
+        //private ActionResult<JWToken> CrearToken(string legajoArmado,Usuarios usr)
+        //{
+        //    string ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
+        //    if (ip != null && ip != "" && UserAdapter.CrearSesionUsuario(usr.id))
+        //    {
+        //        Logger.RegistrarDatos(Logger.LogOptions.IP, this.Request.Path, "IP: " + ip, ControllerName);
+        //        byte[] keyBytes = Encoding.UTF8.GetBytes(SecretKey);
+        //        ClaimsIdentity claims = new();
+        //        //Guardamos todos los datos necesarios para operar mas adelante
+        //        string claimValue = legajoArmado + "," + usr.id_perfil + "," + usr.id;
+        //        claims.AddClaim(new Claim(ClaimTypes.NameIdentifier, claimValue));
 
-                SecurityTokenDescriptor tokenDescriptor = new()
-                {
-                    Subject = claims,
-                    Expires = DateTime.UtcNow.AddMinutes(30),
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256Signature),
-                };
-                JwtSecurityTokenHandler tokenHandler = new();
-                SecurityToken TokenConfig = tokenHandler.CreateToken(tokenDescriptor);
-                string ActualToken = tokenHandler.WriteToken(TokenConfig);
-                JWToken token = new(ActualToken,legajoArmado,usr.nombre_usuario,usr.id_perfil);
-                return Created("/api/Usuarios/ObtenerTokenJWT/", token);
-            }
-            else
-            {
-                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, "ERROR AL CREAR LA SESION EN LA BASE DE DATOS. ACCESO NO AUTORIZADO", ControllerName);
-                return Conflict();
-            }
-        }
+        //        SecurityTokenDescriptor tokenDescriptor = new()
+        //        {
+        //            Subject = claims,
+        //            Expires = DateTime.UtcNow.AddMinutes(30),
+        //            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256Signature),
+        //        };
+        //        JwtSecurityTokenHandler tokenHandler = new();
+        //        SecurityToken TokenConfig = tokenHandler.CreateToken(tokenDescriptor);
+        //        string ActualToken = tokenHandler.WriteToken(TokenConfig);
+        //        JWToken token = new(ActualToken,legajoArmado,usr.nombre_usuario,usr.id_perfil);
+        //        return Created("/api/Usuarios/ObtenerTokenJWT/", token);
+        //    }
+        //    else
+        //    {
+        //        Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, "ERROR AL CREAR LA SESION EN LA BASE DE DATOS. ACCESO NO AUTORIZADO", ControllerName);
+        //        return Conflict();
+        //    }
+        //}
 
         /// <summary>
         /// Listado completo de Usuarios

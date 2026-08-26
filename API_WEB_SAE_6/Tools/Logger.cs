@@ -2,7 +2,7 @@
 using API_WEB_SAE_6.Controllers;
 using Microsoft.Extensions.Logging;
 
-namespace API_WEB_SAE_6.Logs
+namespace API_WEB_SAE_6.Tools
 {
     /// <summary>
     /// Esta clase esta creada con el proposito de almacenar mensajes en formato .txt dentro de la carpeta Logs

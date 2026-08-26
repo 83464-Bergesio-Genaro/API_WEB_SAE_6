@@ -1,5 +1,4 @@
-﻿using API_WEB_SAE_6.Logs;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace API_WEB_SAE_6.Tools
 {
@@ -21,9 +20,9 @@ namespace API_WEB_SAE_6.Tools
         /// </summary>
         public string Environment { get; set; } = "";
         /// <summary>
-        /// La clave que utilizamos para el cifrado
+        /// Es la clave que utilizamos para el SSO, asociado a sistemas de la universidad
         /// </summary>
-        public string SecretKey { get; set; } = "";
+        public string Sso_api_key { get; set; } = "";
         /// <summary>
         /// Para almacenar archivos vamos a utilizar otra direccion para recuperalos
         /// </summary>
@@ -36,7 +35,10 @@ namespace API_WEB_SAE_6.Tools
         /// Las conexiones para los esquemas basados en MSSQL
         /// </summary>
         public Dictionary<string, string> ConexionesMSSQL { get; set; } = [];
-
+        /// <summary>
+        /// Es nuestra configuracion para la gestion de tokens
+        /// </summary>
+        public ConfiguracionJWT JwtSettings { get; set; } = new();
         /// <summary>
         /// Constructor Vacio
         /// </summary>
@@ -114,6 +116,28 @@ namespace API_WEB_SAE_6.Tools
                 return new();
             }
 
+        }
+        /// <summary>
+        /// Es nuestra configuracion de JWT
+        /// </summary>
+        public class ConfiguracionJWT()
+        {
+            /// <summary>
+            /// Define quien crea el token y tiene validez
+            /// </summary>
+            public string Issuer = "";
+            /// <summary>
+            /// Define quien lee nuestro token
+            /// </summary>
+            public string Audience = "";
+            /// <summary>
+            /// Conjunto de bytes que representa nuestra clave secreta
+            /// </summary>
+            public byte[] SecretKey = [];
+            /// <summary>
+            /// La cantidad de minutos que le queremos dar de validez
+            /// </summary>
+            public int MinutesToExpire = 0;
         }
     }
 }

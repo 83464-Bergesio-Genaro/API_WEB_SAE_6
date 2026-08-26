@@ -1,5 +1,4 @@
 ﻿using API_WEB_SAE_6.Adapters;
-using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models.Compra;
 using API_WEB_SAE_6.Models.Viaje;
 using API_WEB_SAE_6.Tools;

@@ -1,12 +1,15 @@
-using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Tools;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text;
+using TransporteBoleto_API.Tools;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddDistributedMemoryCache();
+
 #region CorsRules
 
 var CorsRules = "CorsRules";
@@ -37,26 +40,61 @@ builder.Configuration.AddJsonFile("appsettings.json");
 //{
 //    serverOptions.ListenAnyIP(5000); // Puedes cambiar el puerto aquí si lo necesitas
 //});
-var secretKey = SettingsReader.GetAppSettings().SecretKey; 
-var keyBytes = Encoding.UTF8.GetBytes(secretKey ?? "ERROR");
+var version = builder.Configuration.GetSection("Version");
 
-builder.Services.AddAuthentication(config =>
+//Estos datos son los mismos siempre
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+//Esta escondido
+string? secretKey = builder.Configuration["JwtSettings:JwtKey"];
+string? ssoKey = builder.Configuration["SsoApiKey"];
+//Devolvemos error cuando la clave secreta no existe
+if (string.IsNullOrEmpty(secretKey) || string.IsNullOrEmpty(ssoKey)) {throw new Exception("Las claves secretas no se encontraron.");}
+
+byte[] keyBytes = Encoding.UTF8.GetBytes(secretKey);
+//Las guardamos para usar despues
+SettingsReader.GetAppSettings().JwtSettings.SecretKey = keyBytes;
+SettingsReader.GetAppSettings().Sso_api_key = ssoKey;
+string enviroment = SettingsReader.GetAppSettings().Environment;
+
+builder.Services.AddAuthentication(options =>
 {
-    config.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    config.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(config =>
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
 {
-    config.RequireHttpsMetadata = false;
-    config.SaveToken = true;
-    config.TokenValidationParameters = new()
+    options.TokenValidationParameters = new TokenValidationParameters
     {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
-        ValidateIssuer = false,
-        ValidateAudience = false
+        ValidIssuer = jwtSettings.GetValue<string>("Issuer"),
+        ValidAudience = jwtSettings.GetValue<string>("Audience"),
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!))
     };
 });
 
+builder.Services.AddAuthorization(options =>
+{
+    // Si estamos en TEST no controla el Token
+    if (enviroment == "DESA")
+    {
+        options.FallbackPolicy = new AuthorizationPolicyBuilder()
+            .RequireAssertion(_ => true) // Permite el paso a todos siempre
+            .Build();
+
+        // También dejo que la política por defecto sea permisiva
+        options.DefaultPolicy = options.FallbackPolicy;
+    }
+    else
+    {
+        // En el servidor de DESA y PROD va a pedir token
+        options.DefaultPolicy = new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .Build();
+    }
+});
 //Esto es necesario para que nos permita usar un Token en las funciones de la aplicacion.
 builder.Services.AddSwaggerGen(c =>
 {
@@ -111,17 +149,17 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 //Apenas inicia el programa el logger verifica donde guardar los datos
 Logger.DefinirDirectorios();
+//Aca permitimos que GestorToken acceda a servicios asociados a nuestro builder
+builder.Services.AddScoped<GestorToken>();
+
 var app = builder.Build();
 // Configure the HTTP request pipeline.
-//if (app.Environment.IsDevelopment())
-//{
-
-//}
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// Habilitar Swagger para desarrollo (O quitar el IF si REALMENTE lo quieres en producción)
+if (enviroment != "PROD")
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Service Manager API V1");
-});
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 //Lo saque porque sino se hacia imposible en Linux
 //app.UseHttpsRedirection();
@@ -133,13 +171,13 @@ app.Use(async (context, next) =>
     if (context.Request.Method == "OPTIONS" &&
     context.Request.Headers.ContainsKey("Access-Control-Request-Private-Network"))
     {
-        context.Response.Headers.Add("Access-Control-Allow-Private-Network", "true");
+        context.Response.Headers.Append("Access-Control-Allow-Private-Network", "true");
     }
     await next();
 });
 //Se debe agregar despues de la configuracion para que utilice JWT
+app.UseMiddleware<JwtBlacklistMiddleware>(); //Habilita el uso de lista negra para tokens
 app.UseAuthentication();
-
 app.UseAuthorization();
 
 app.MapControllers();
