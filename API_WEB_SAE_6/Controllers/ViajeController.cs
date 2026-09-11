@@ -72,6 +72,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpGet]
+        [Authorize]
         [ActionName("ObtenerViajesCompleto")]
         [ProducesResponseType(typeof(IEnumerable<Viajes>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -135,6 +136,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
         [HttpGet]
+        [Authorize]
         [ActionName("ObtenerViajesActivo")]
         [ProducesResponseType(typeof(IEnumerable<Viajes>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -198,6 +200,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="400" >Ocurre un error en la consulta </response>    
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
+        [Authorize]
         [HttpGet("{legajo}")]
         [ActionName("ObtenerViajesXLegajo")]
         [ProducesResponseType(typeof(IEnumerable<Viajes>), StatusCodes.Status200OK)]
