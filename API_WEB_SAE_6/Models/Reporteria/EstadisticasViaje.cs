@@ -19,10 +19,6 @@
             /// </summary>
             public int cantidad_estudiantes { get; set; } = 0;
             /// <summary>
-            /// El id de la carrera que realiza el viaje
-            /// </summary>
-            public int id_especialidad { get; set; } = 0;
-            /// <summary>
             /// El año al que corresponde esta estadistica
             /// </summary>
             public int anio { get; set; } = DateTime.Now.Year;
@@ -35,6 +31,6 @@
         /// <summary>
         /// Representa la cantidad de alumnos por año en el sistema.
         /// </summary>
-        public List<ViajesXFecha> ViajesXMesAnio = [];
+        public List<ViajesXFecha> ViajesXMesAnio { get; set; } = [];
     }
 }

@@ -1,9 +1,11 @@
 ﻿using API_WEB_SAE_6.Adapters;
+using API_WEB_SAE_6.Logs;
 using API_WEB_SAE_6.Models.Reporteria;
 using API_WEB_SAE_6.Models.Viaje;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace API_WEB_SAE_6.Controllers
 {
@@ -19,15 +21,14 @@ namespace API_WEB_SAE_6.Controllers
         /// Es el adaptador de usuarios para consultar los permisos
         /// </summary>
         private UsuarioAdapter UserAdapter = new();
-
-        //     SELECT COUNT(e.id) AS economomica, COUNT(i.id) AS investigacion, COUNT(s.id) AS servicio
-        //         FROM BecariosSAE b
-        //         JOIN BecariosSAEEconomica e ON b.id = e.id_becario
-        //         JOIN BecariosSAEInvestigacion i ON b.id = i.id_becario
-        //         JOIN BecariosSAEServicio s ON b.id = s.id_becario
-        //             WHERE b.anio_beca >= YEAR(initDate)
-        //             AND b.anio_beca <= YEAR(endDate)
-        //             GROUP BY b.anio_beca
+        /// <summary>
+        /// Es el adaptador con respecto a la base de datos para realizar llamadas
+        /// </summary>
+        private ReporteAdapter ReportAdapter = new();
+        /// <summary>
+        /// 
+        /// </summary>
+        private readonly string ControllerName = "ReporteController";
         /// <summary>
         /// Recupera las estadisticas del area de becas
         /// </summary>
@@ -63,7 +64,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="400" >Ocurre un error en la consulta </response>    
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpGet]
+        [HttpGet("{startYear}/{endYear}")]
         [Authorize]
         [ActionName("ObtenerEstadisticasBecas")]
         [ProducesResponseType(typeof(EstadisticasBecas), StatusCodes.Status200OK)]
@@ -73,7 +74,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<EstadisticasBecas> ObtenerEstadisticasBecas(int startYear,int endYear)
         {
-            return Ok(new EstadisticasBecas());
+            try
+            {
+                if (startYear > endYear) return BadRequest("El año de inicio no puede ser mayor al año final");
+                if (TienePermiso(55))
+                {
+                    EstadisticasBecas? esta = ReportAdapter.ObtenerEstadisticasBecas(startYear, endYear);
+                    if (esta == null) return Conflict("Fallo algo al recuperar las estadisticas");
+
+                    return Ok(esta);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
         }
 
         /// <summary>
@@ -111,7 +128,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="400" >Ocurre un error en la consulta </response>    
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpGet]
+        [HttpGet("{startYear}/{endYear}")]
         [Authorize]
         [ActionName("ObtenerEstadisticasDeportes")]
         [ProducesResponseType(typeof(EstadisticasDeportes), StatusCodes.Status200OK)]
@@ -121,7 +138,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<EstadisticasDeportes> ObtenerEstadisticasDeportes(int startYear, int endYear)
         {
-            return Ok(new EstadisticasDeportes());
+            try
+            {
+                if (startYear > endYear) return BadRequest("El año de inicio no puede ser mayor al año final");
+                if (TienePermiso(27))
+                {
+                    EstadisticasDeportes? esta = ReportAdapter.ObtenerEstadisticasDeporte(startYear, endYear);
+                    if (esta == null) return Conflict("Fallo algo al recuperar las estadisticas");
+
+                    return Ok(esta);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
         }
 
         /// <summary>
@@ -159,7 +192,7 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="400" >Ocurre un error en la consulta </response>    
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpGet]
+        [HttpGet("{startDate}/{endDate}")]
         [Authorize]
         [ActionName("ObtenerEstadisticasSalud")]
         [ProducesResponseType(typeof(EstadisticasSalud), StatusCodes.Status200OK)]
@@ -169,7 +202,23 @@ namespace API_WEB_SAE_6.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<EstadisticasSalud> ObtenerEstadisticasSalud(DateOnly startDate, DateOnly endDate)
         {
-            return Ok(new EstadisticasSalud());
+            try
+            {
+                if (startDate > endDate) return BadRequest("La fecha de inicio no puede ser mayor a la fecha final");
+                if (TienePermiso(84))
+                {
+                    EstadisticasSalud? esta = ReportAdapter.ObtenerEstadisticasSalud(startDate, endDate);
+                    if (esta == null) return Conflict("Fallo algo al recuperar las estadisticas");
+
+                    return Ok(esta);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
         }
 
         /// <summary>
@@ -207,17 +256,46 @@ namespace API_WEB_SAE_6.Controllers
         /// <response code="400" >Ocurre un error en la consulta </response>    
         /// <response code="409" >Ocurre un error en el procedimiento/vista de la base de datos </response>
         /// <response code="500" >Ocurre un error en la API o en el Servidor no documentada </response>
-        [HttpGet]
+        [HttpGet("{startDate}/{endDate}")]
         [Authorize]
         [ActionName("ObtenerEstadisticasViaje")]
-        [ProducesResponseType(typeof(EstadisticasSalud), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(EstadisticasViaje), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<EstadisticasSalud> ObtenerEstadisticasViaje(DateOnly startDate, DateOnly endDate)
+        public ActionResult<EstadisticasViaje> ObtenerEstadisticasViaje(DateOnly startDate, DateOnly endDate)
         {
-            return Ok(new EstadisticasSalud());
+            try
+            {
+                if (startDate > endDate) return BadRequest("La fecha de inicio no puede ser mayor a la fecha final");
+                if (TienePermiso(61))
+                {
+                    EstadisticasViaje? esta = ReportAdapter.ObtenerEstadisticasViajes(startDate, endDate);
+                    if (esta == null) return Conflict("Fallo algo al recuperar las estadisticas");
+
+                    return Ok(esta);
+                }
+                else return Forbid();
+            }
+            catch (Exception ex)
+            {
+                Logger.RegistrarDatos(Logger.LogOptions.Error, this.Request.Path, ex.Message, ControllerName);
+                return BadRequest();
+            }
+        }
+
+        /// <summary>
+        /// Permite validar si el perfil tiene permiso en la BD para ejecutar este endpoint
+        /// </summary>
+        /// <param name="id_funcion">Es la funcion que queremos validar </param>
+        /// <returns> True = Tiene permisos || False = No tiene permisos </returns>
+        private bool TienePermiso(int id_funcion)
+        {
+            string userData = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "NO DATA";
+            if (userData == null || userData == "NO DATA") return false;
+            if (int.TryParse(userData.Split(',')[1], out int id_perfil)) return UserAdapter.TienePermiso(id_funcion, id_perfil);
+            else return false;
         }
     }
 }

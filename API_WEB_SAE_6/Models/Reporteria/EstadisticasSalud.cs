@@ -30,6 +30,6 @@
         /// <summary>
         /// Representa la cantidad de turnos de salud por especialidad en el sistema.
         /// </summary>
-        public List<EstadisticaTurno> TurnosXEspecialidad = [];
+        public List<EstadisticaTurno> TurnosXEspecialista { get; set; } = [];
     }
 }
